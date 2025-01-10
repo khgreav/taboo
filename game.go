@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type Game struct {
 	// Connected players
@@ -25,6 +28,13 @@ func (g *Game) run() {
 		case player := <-g.connect:
 			log.Println("New player connected from:", player.conn.RemoteAddr().String())
 			g.players[player] = true
+			player.conn.WriteMessage(1, []byte(
+				fmt.Sprintf(
+					"Welcome player %s, you are on team %d",
+					player.conn.RemoteAddr().String(),
+					player.team,
+				)),
+			)
 		case player := <-g.disconnect:
 			_, exists := g.players[player]
 			if exists {

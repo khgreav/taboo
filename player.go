@@ -16,7 +16,7 @@ type Player struct {
 	team int
 }
 
-func newPlayerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
+func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Error accepting client connection:", err)
