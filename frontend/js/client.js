@@ -4,20 +4,35 @@ const connect = () => {
     if (socket !== null && (socket.readyState === 0 || socket.readyState === 1)) {
         return;
     }
-    socket = new WebSocket("ws://localhost:8081/ws");
+    const client_id = localStorage.getItem('player_id')
+    console.warn(client_id);
+    socket = new WebSocket('ws://localhost:8081/ws');
+    socket.onopen = () => {
+        socket.send(JSON.stringify({
+            type: 'client_id',
+            id: client_id,
+        }))
+    }
     socket.onmessage = (e) => {
-        console.log(e.data);
+        messageHandler(e.data);
     }
     socket.onclose = (e) => {
         console.error(e);
         setTimeout(() => {
-            connect()
+            connect();
         }, 5000);
     }
     socket.onerror = (e) => {
         console.error(e);
         setTimeout(() => {
-            connect()
+            connect();
         }, 5000);
+    }
+}
+
+function messageHandler(message) {
+    if (message.type === 'new_player_id') {
+        localStorage.setItem('player_id', message.id);
+        console.log('Received new ID: ' + message.id);
     }
 }

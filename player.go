@@ -1,13 +1,18 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{}
+
+type ConnectRequest struct {
+	// Client ID
+	id string
+	// client websocket connection
+	conn *websocket.Conn
+}
 
 type Player struct {
 	// client websocket connection
@@ -16,12 +21,6 @@ type Player struct {
 	team int
 }
 
-func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Error accepting client connection:", err)
-		return
-	}
-	player := &Player{conn: conn, team: -1}
-	game.connect <- player
+func generatePlayerId() string {
+	return uuid.NewString()
 }
