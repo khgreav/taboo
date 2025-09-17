@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "set_name",
+    "type": "object",
+    "required": [
+        "type",
+        "name"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "connect"
+        },
+        "name": {
+            "title": "Player name",
+            "type": "string",
+            "minLength": 1
+        }
+    }
+}

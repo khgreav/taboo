@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "word": "Pizza",
+    "taboo": ["Cheese", "Pepperoni", "Slice", "Italian", "Crust"]
+  },
+  {
+    "id": 2,
+    "word": "Airplane",
+    "taboo": ["Fly", "Pilot", "Airport", "Wings", "Travel"]
+  },
+  {
+    "id": 3,
+    "word": "Birthday",
+    "taboo": ["Cake", "Party", "Gift", "Candles", "Celebrate"]
+  },
+  {
+    "id": 4,
+    "word": "Doctor",
+    "taboo": ["Hospital", "Patient", "Medicine", "Sick", "Nurse"]
+  },
+  {
+    "id": 5,
+    "word": "Computer",
+    "taboo": ["Keyboard", "Mouse", "Internet", "Screen", "Laptop"]
+  },
+  {
+    "id": 6,
+    "word": "Football",
+    "taboo": ["Touchdown", "Helmet", "Quarterback", "Field", "Team"]
+  },
+  {
+    "id": 7,
+    "word": "Guitar",
+    "taboo": ["Strings", "Music", "Play", "Instrument", "Pick"]
+  },
+  {
+    "id": 8,
+    "word": "Snow",
+    "taboo": ["White", "Cold", "Winter", "Ice", "Flake"]
+  },
+  {
+    "id": 9,
+    "word": "Library",
+    "taboo": ["Books", "Read", "Quiet", "Shelves", "Borrow"]
+  },
+  {
+    "id": 10,
+    "word": "Dinosaur",
+    "taboo": ["Fossil", "Jurassic", "Extinct", "T-Rex", "Prehistoric"]
+  }
+]

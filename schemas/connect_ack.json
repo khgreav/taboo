@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "connect_ack",
+    "type": "object",
+    "required": [
+        "type",
+        "playerId"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "connect_ack"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "type": "string",   
+            "format": "uuid"
+        }
+    }
+}

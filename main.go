@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -10,37 +12,81 @@ import (
 var addr = "localhost:8081"
 
 func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
-	playerId := r.Header.Get("X-Player-ID")
-	if playerId == "" {
-		playerId = generatePlayerId()
-	}
-
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("Error accepting client connection:", err)
+		slog.Error("Error accepting client connection.", "err", err)
 		return
 	}
 
-	conn.SetCloseHandler(func(code int, text string) error {
-		slog.Info("Player %s disconnected: %s (%d)", playerId, text, code)
-		game.disconnect <- playerId
-		return nil
-	})
+	ss, _ := GetSchemaStorage()
 
-	game.connect <- &ConnectRequest{
-		id:   playerId,
-		conn: conn,
-	}
+	go func() {
 
-	for {
-		mtype, data, err := conn.ReadMessage()
-		if err != nil {
-			slog.Error("Failed to read message: ", "err", err)
-			break
+		defer func() {
+			conn.Close()
+		}()
+
+		for {
+			mtype, data, err := conn.ReadMessage()
+			if err != nil {
+				slog.Error("Failed to read message.", "err", err)
+				break
+			}
+			slog.Debug("Incoming message.", "type", mtype, "content", data)
+
+			msg, err := decodeIncomingMessage(ss, data)
+			if err != nil {
+				slog.Error("Failed to process incoming message.", "err", err)
+				continue
+			}
+
+			if msg.GetType() == ConnectMsg {
+				conMsg, ok := msg.(*ConnectMessage)
+				if !ok {
+					slog.Error("Failed to cast message to ConnectMessage")
+					continue
+				}
+				game.AddPlayer(conn, conMsg.PlayerId)
+				continue
+			}
+
+			game.messages <- msg
 		}
+	}()
+}
 
-		slog.Debug("Incoming message", "type", mtype, "content", data)
+func decodeIncomingMessage(ss *SchemaStorage, data []byte) (MessageBase, error) {
+	var typeMsg TypeMessage
+	if err := json.Unmarshal(data, &typeMsg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal incoming JSON message: %w", err)
 	}
+
+	if err := ss.validate(typeMsg.Type, data); err != nil {
+		return nil, fmt.Errorf("failed to validate incoming %s message: %w", typeMsg.Type, err)
+	}
+
+	message, err := ConstructMessageContainer(typeMsg.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, message); err != nil {
+		return nil, fmt.Errorf("failed to parse incoming %s JSON message: %w", typeMsg.Type, err)
+	}
+
+	return message, nil
+}
+
+func initStorage() error {
+	_, err := GetSchemaStorage()
+	if err != nil {
+		return fmt.Errorf("failed to initialize schema storage")
+	}
+	_, err = GetWordStorage()
+	if err != nil {
+		return fmt.Errorf("failed to initialize word storage")
+	}
+	return nil
 }
 
 func main() {
@@ -48,6 +94,10 @@ func main() {
 		Level: slog.LevelDebug,
 	}))
 	slog.SetDefault(logger)
+	if err := initStorage(); err != nil {
+		slog.Error("Failed to initialize game systems: %w", "err", err)
+		os.Exit(1)
+	}
 	game := createGame()
 	go game.run() // TODO: MULTIPLE GAME ROOMS
 	http.Handle("/", http.FileServer(http.Dir("frontend/")))

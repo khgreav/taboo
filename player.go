@@ -7,14 +7,9 @@ import (
 
 var upgrader = websocket.Upgrader{}
 
-type ConnectRequest struct {
-	// Client ID
-	id string
-	// client websocket connection
-	conn *websocket.Conn
-}
-
 type Player struct {
+	// Player ID
+	id string
 	// client websocket connection
 	conn *websocket.Conn
 	// player team

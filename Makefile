@@ -1,7 +1,10 @@
 phony: all build clean update
 
 build:
-	go build -o output/not-taboo-multiplayer
+	go build -o output/taboo-mp
+
+run:
+	./output/taboo-mp
 
 clean:
 	rm -rf output

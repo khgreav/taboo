@@ -1,0 +1,28 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "connect",
+    "type": "object",
+    "required": [
+        "type",
+        "playerId"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "connect"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "oneOf": [
+                {
+                    "type": "string",   
+                    "format": "uuid"
+                },
+                {
+                    "type": "null"
+                }
+            ]
+        }
+    }
+}
