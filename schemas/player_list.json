@@ -1,0 +1,40 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "player_list",
+    "type": "object",
+    "required": [
+        "type",
+        "players"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "player_list"
+        },
+        "players": {
+            "title": "List of players",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "title": "Player ID",
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "title": "Player name",
+                        "type": "string",
+                        "minLength": 1
+                    }
+                }
+            }
+        }
+    }
+}

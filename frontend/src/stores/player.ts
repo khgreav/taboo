@@ -3,7 +3,20 @@ import { defineStore } from 'pinia';
 
 export const usePlayerStore = defineStore('player', () => {
   const playerId: Ref<string | null> = ref(null);
-  const name: Ref<string> = ref('Player');
+  const playerName: Ref<string> = ref('Player');
 
-  return { playerId, name };
+  function setPlayerId(id: string) {
+    playerId.value = id;
+  }
+
+  function setPlayerName(name: string) {
+    playerName.value = name;
+  }
+
+  return {
+    playerId,
+    playerName,
+    setPlayerId,
+    setPlayerName,
+  };
 });

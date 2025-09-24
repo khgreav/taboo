@@ -1,3 +1,4 @@
+import type { MessageBase } from '@/types/messages';
 import { defineStore } from 'pinia';
 
 interface ClientSocketState {
@@ -32,27 +33,31 @@ export const useSocketStore = defineStore('socketStore', {
         onOpen(): void {
             this.connected = true;
         },
-        onClose(e: CloseEvent): void {
-            console.warn(e);
+        onClose(): void {
             this.connected = true;
             setTimeout(() => {
                 this.init(this.url!);
             }, 5000);
         },
-        onError(e: Event): void {
-            console.warn(e);
+        onError(): void {
             this.connected = true;
             setTimeout(() => {
                 this.init(this.url!);
             }, 5000);
         },
-        onMessage(e: MessageEvent<string>): unknown {
+        onMessage(e: MessageEvent<string>): MessageBase | null { 
             try {
                 const data = JSON.parse(e.data);
-                return data
+                return data;
             } catch {
                 console.warn('[WS] Invalid message received', e.data);
+                return null;
             }
         },
+        sendMessage<T extends MessageBase>(data: T): void {
+            if (this.socket && this.connected) {
+                this.socket.send(JSON.stringify(data));
+            }
+        }
     },
 });

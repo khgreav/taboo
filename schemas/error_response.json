@@ -1,0 +1,26 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "error_response",
+    "type": "object",
+    "required": [
+        "type",
+        "failedType",
+        "error"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "error_response"
+        },
+        "failedType": {
+            "title": "Message type",
+            "const": "error_response"
+        },
+        "error": {
+            "title": "Error message",
+            "type": "string",
+            "minLength": 1
+        }
+    }
+}

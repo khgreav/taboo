@@ -26,6 +26,8 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 			conn.Close()
 		}()
 
+		var playerId string
+
 		for {
 			mtype, data, err := conn.ReadMessage()
 			if err != nil {
@@ -46,8 +48,18 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					slog.Error("Failed to cast message to ConnectMessage")
 					continue
 				}
-				game.AddPlayer(conn, conMsg.PlayerId)
+				playerId = game.AddPlayer(conn, conMsg.PlayerId)
 				continue
+			} else {
+				playerMsg, ok := msg.(PlayerMessage)
+				if !ok {
+					slog.Error("Failed to cast message to PlayerMessage")
+					continue
+				}
+				if playerMsg.GetPlayerId() != playerId {
+					slog.Error("Player ID mismatch", "expected", playerId, "got", playerMsg.GetPlayerId())
+					continue
+				}
 			}
 
 			game.messages <- msg
@@ -56,7 +68,7 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 }
 
 func decodeIncomingMessage(ss *SchemaStorage, data []byte) (MessageBase, error) {
-	var typeMsg TypeMessage
+	var typeMsg TypeProperty
 	if err := json.Unmarshal(data, &typeMsg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal incoming JSON message: %w", err)
 	}

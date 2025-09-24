@@ -1,0 +1,27 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "player_joined",
+    "type": "object",
+    "required": [
+        "type",
+        "playerId",
+        "name"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "player_joined"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "type": "string",   
+            "format": "uuid"
+        },
+        "name": {
+            "title": "Player name",
+            "type": "string",
+            "minLength": 1
+        }
+    }
+}

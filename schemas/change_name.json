@@ -1,16 +1,22 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "set_name",
+    "$id": "change_name",
     "type": "object",
     "required": [
         "type",
+        "playerId",
         "name"
     ],
     "additionalProperties": false,
     "properties": {
         "type": {
             "title": "Message type",
-            "const": "connect"
+            "const": "change_name"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "type": "string",   
+            "format": "uuid"
         },
         "name": {
             "title": "Player name",

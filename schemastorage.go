@@ -57,6 +57,7 @@ func (ss *SchemaStorage) loadSchemas(dir string) error {
 
 		// compile schema
 		schema, err := ss.compiler.Compile(content)
+		ss.compiler.SetSchema(schema.ID, schema)
 		if err != nil {
 			slog.Warn("Failed to compile schema file.", "file", path, "err", err)
 			continue
