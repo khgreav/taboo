@@ -10,6 +10,7 @@ const (
 	ChangeNameMsg 	MessageType = "change_name"
 	NameChangedMsg 	MessageType = "name_changed"
 	PlayerJoinedMsg MessageType = "player_joined"
+	PlayerLeftMsg  	MessageType = "player_left"
 	PlayerListMsg  	MessageType = "player_list"
 )
 
@@ -41,6 +42,7 @@ type PlayerMessage interface {
 type ConnectMessage struct {
 	TypeProperty
 	PlayerId *string `json:"playerId"`
+	Name     string `json:"name"`
 }
 
 type ConnectAckMessage struct {
@@ -64,6 +66,11 @@ type PlayerJoinedMessage struct {
 	TypeProperty
 	PlayerIdProperty
 	Name string `json:"name"`
+}
+
+type PlayerLeftMessage struct {
+	TypeProperty
+	PlayerIdProperty
 }
 
 type PlayerListMessage struct {

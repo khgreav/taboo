@@ -108,6 +108,27 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 	return player.id
 }
 
+func (g *Game) RemovePlayer(playerId string) {
+	g.playerMtx.Lock()
+	// delete player from map
+	delete(g.players, playerId)
+	// get copy of players to unlock early
+	players := g.GetPlayersCopyUnlocked()
+	g.playerMtx.Unlock()
+
+	// create player left message
+	leftMsg := &PlayerLeftMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerLeftMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: playerId,
+		},
+	}
+	// broadcast player left message to all other players
+	broadcastMessage(players, leftMsg, nil)
+}
+
 func (g *Game) changePlayerName(playerId string, name string) error {
 	// lock before accessing players
 	g.playerMtx.Lock()

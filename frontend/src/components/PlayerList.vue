@@ -15,40 +15,42 @@
 
 <script lang="ts" setup>
 import { useGameStore } from '@/stores/game';
-import { usePlayerStore } from '@/stores/player';
 import { useSocketStore } from '@/stores/socketStore';
-import { MessageType, type PlayerListMessage } from '@/types/messages';
-import type { Player } from '@/types/player';
+import { MessageType, type PlayerJoinedMessage, type PlayerLeftMessage, type PlayerListMessage } from '@/types/messages';
 import { storeToRefs } from 'pinia';
 
-const playerStore = usePlayerStore();
-const { playerId } = storeToRefs(playerStore);
 const gameStore = useGameStore();
-const { playerList } = storeToRefs(gameStore);
+const { playerId, playerList } = storeToRefs(gameStore);
 const clientSocket = useSocketStore();
 
 clientSocket.$onAction(({ name, after }) => {
   if (name === 'onMessage') {
     after((message) => {
       if (!message) return;
-      // Handle player list updates
-      if (message.type === MessageType.PlayerListMsg) {
-        handlePlayerList(message as PlayerListMessage);
+      switch (message.type) {
+        case MessageType.PlayerJoinedMsg:
+          handlePlayerJoined(message as PlayerJoinedMessage);
+          break;
+        case MessageType.PlayerListMsg:
+          handlePlayerList(message as PlayerListMessage);
+          break;
+        case MessageType.PlayerLeftMsg:
+          handlePlayerLeft(message as PlayerLeftMessage);
+          break;
       }
     });
   }
 });
 
 const handlePlayerList = (message: PlayerListMessage) => {
-  message.data.sort((a: Player, b: Player) => {
-    if (a.id === playerId.value) {
-      return -1;
-    }
-    if (b.id === playerId.value) {
-      return 1;
-    }
-    return a.name.localeCompare(b.name);
-  });
-  gameStore.setPlayerList(message.data);
+  gameStore.setPlayerList(message.players);
+};
+
+const handlePlayerJoined = (message: PlayerJoinedMessage) => {
+  gameStore.addPlayer({ id: message.playerId, name: message.name });
+};
+
+const handlePlayerLeft = (message: PlayerLeftMessage) => {
+  gameStore.removePlayer(message.playerId);
 };
 </script>
