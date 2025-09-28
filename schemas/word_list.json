@@ -1,0 +1,52 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "word_list",
+    "type": "object",
+    "required": [
+        "type",
+        "words"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "word_list"
+        },
+        "words": {
+            "title": "List of random words",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "word",
+                    "taboo"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "title": "Word ID",
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "word": {
+                        "title": "Guessed word",
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "taboo": {
+                        "title": "Taboo words",
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "minItems": 5,
+                        "maxItems": 5,
+                        "uniqueItems": true
+                    }
+                }
+            }
+        }
+    }
+}

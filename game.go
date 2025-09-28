@@ -10,18 +10,41 @@ import (
 )
 
 type Game struct {
+	// Is the game currently running
+	running bool
 	// Player mutex
-	playerMtx 	sync.RWMutex
+	playerMtx sync.RWMutex
 	// Connected players
-	players 	map[string]*Player
+	players map[string]*Player
 	// Channel for incoming player messages
-	messages 	chan MessageBase
+	messages chan MessageBase
+	// IDs of words to be used in game
+	wordIds []uint
+	// Index of the start of next batch
+	wordIdx uint
+	// Index of the current word
+	currentWordIdx uint
 }
 
-func createGame() *Game {
+func CreateGame() *Game {
 	return &Game{
-		players:  make(map[string]*Player, 4),
-		messages: make(chan MessageBase),
+		running:        false,
+		playerMtx:      sync.RWMutex{},
+		players:        make(map[string]*Player, 4),
+		messages:       make(chan MessageBase),
+		wordIds:        wordStorage.GetShuffledIds(),
+		wordIdx:        0,
+		currentWordIdx: 0,
+	}
+}
+
+func (g *Game) reset() {
+	g.running = false
+	g.wordIds = wordStorage.GetShuffledIds()
+	g.wordIdx = 0
+	g.currentWordIdx = 0
+	for k := range g.players {
+		delete(g.players, k)
 	}
 }
 
@@ -32,6 +55,10 @@ func (g *Game) run() {
 		switch message := message.(type) {
 		case *ChangeNameMessage:
 			err = g.changePlayerName(message.PlayerId, message.Name)
+		case *PlayerReadyMessage:
+			err = g.changePlayerReadyStatus(message.PlayerId, message.IsReady)
+		case *SkipWordMessage:
+			err = g.skipCurrentWord(message.PlayerId)
 		default:
 			slog.Warn("Unknown message type", "type", message.GetType())
 		}
@@ -51,10 +78,11 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 		newId := generatePlayerId()
 		// new player without ID
 		player = Player{
-			id:   newId,
-			name: name,
-			conn: conn,
-			team: -1,
+			id:      newId,
+			conn:    conn,
+			name:    name,
+			isReady: false,
+			team:    -1,
 		}
 		g.players[newId] = &player
 	} else {
@@ -73,6 +101,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 		PlayerIdProperty: PlayerIdProperty{
 			PlayerId: player.id,
 		},
+		Name: name,
 	}
 	// send connect ack to the new player
 	sendUnicastMessage(&player, msg)
@@ -112,6 +141,13 @@ func (g *Game) RemovePlayer(playerId string) {
 	g.playerMtx.Lock()
 	// delete player from map
 	delete(g.players, playerId)
+
+	if len(g.players) == 0 {
+		slog.Info("All players have left. Resetting the game.")
+		g.reset()
+		g.playerMtx.Unlock()
+		return
+	}
 	// get copy of players to unlock early
 	players := g.GetPlayersCopyUnlocked()
 	g.playerMtx.Unlock()
@@ -158,13 +194,91 @@ func (g *Game) changePlayerName(playerId string, name string) error {
 	return nil
 }
 
+func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
+	// lock before accessing players
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	if g.running {
+		return fmt.Errorf("game is already running, cannot change ready status")
+	}
+	// find player
+	player, exists := g.players[playerId]
+	if !exists {
+		return fmt.Errorf("player with ID %s not found", playerId)
+	}
+	// change ready status
+	player.isReady = isReady
+	// create ready status change message
+	msg := &PlayerReadyMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerReadyMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: playerId,
+		},
+		IsReady: isReady,
+	}
+	// get copy of players to unlock early
+	players := g.GetPlayersCopyUnlocked()
+	// broadcast ready status change
+	broadcastMessage(players, msg, nil)
+	canStart := true
+	for _, p := range players {
+		if !p.isReady {
+			canStart = false
+			break
+		}
+	}
+	if canStart {
+		slog.Info("All players are ready. Starting the game...")
+		g.running = true
+		words, err := wordStorage.GetWordsByIds(g.wordIds[0:10])
+		if err != nil {
+			return fmt.Errorf("failed to get words for the game: %w", err)
+		}
+		g.wordIdx += 10
+		wordListMsg := &WordListMessage{
+			TypeProperty: TypeProperty{
+				Type: WordListMsg,
+			},
+			Words: words,
+		}
+		broadcastMessage(players, wordListMsg, nil)
+	}
+	return nil
+}
+
+func (g *Game) skipCurrentWord(playerId string) error {
+	// lock before accessing players
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	if !g.running {
+		return fmt.Errorf("game is not running, cannot skip word")
+	}
+	g.currentWordIdx++
+	players := g.GetPlayersCopyUnlocked()
+	skippedMsg := &WordSkippedMessage{
+		TypeProperty: TypeProperty{
+			Type: WordSkippedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: playerId,
+		},
+	}
+	broadcastMessage(players, skippedMsg, nil)
+	return nil
+}
+
 func (g *Game) CreatePlayerList() []PlayerInfo {
 	players := g.GetPlayersCopy()
 	playerList := make([]PlayerInfo, 0, len(players))
 	for _, p := range players {
 		playerList = append(playerList, PlayerInfo{
-			Id:   p.id,
-			Name: p.name,
+			Id:      p.id,
+			Name:    p.name,
+			IsReady: p.isReady,
 		})
 	}
 	return playerList

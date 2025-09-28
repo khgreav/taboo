@@ -19,7 +19,8 @@
                 "type": "object",
                 "required": [
                     "id",
-                    "name"
+                    "name",
+                    "isReady"
                 ],
                 "additionalProperties": false,
                 "properties": {
@@ -32,6 +33,10 @@
                         "title": "Player name",
                         "type": "string",
                         "minLength": 1
+                    },
+                    "isReady": {
+                        "title": "Player ready status",
+                        "type": "boolean"
                     }
                 }
             }

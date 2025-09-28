@@ -1,27 +1,21 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "connect_ack",
+    "$id": "word_skipped",
     "type": "object",
     "required": [
         "type",
-        "playerId",
-        "name"
+        "playerId"
     ],
     "additionalProperties": false,
     "properties": {
         "type": {
             "title": "Message type",
-            "const": "connect_ack"
+            "const": "word_skipped"
         },
         "playerId": {
             "title": "Player ID",
             "type": "string",
             "format": "uuid"
-        },
-        "name": {
-            "title": "Player name",
-            "type": "string",
-            "minLength": 1
         }
     }
 }

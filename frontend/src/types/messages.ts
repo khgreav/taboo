@@ -1,4 +1,5 @@
-import type { Player } from './player';
+import type { OtherPlayer } from './player';
+import type { Word } from './words';
 
 export enum MessageType {
   ConnectMsg = 'connect',
@@ -8,6 +9,10 @@ export enum MessageType {
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
   PlayerListMsg = 'player_list',
+  PlayerReadyMsg = 'player_ready',
+  WordListMsg = 'word_list',
+  SkipWordMsg = 'skip_word',
+  WordSkippedMsg = 'word_skipped',
 }
 
 export interface MessageBase {
@@ -51,5 +56,26 @@ export interface PlayerJoinedMessage extends MessageBase {
 
 export interface PlayerListMessage extends MessageBase {
   type: MessageType.PlayerListMsg;
-  players: Player[];
+  players: OtherPlayer[];
+}
+
+export interface PlayerReadyMessage extends MessageBase {
+  type: MessageType.PlayerReadyMsg;
+  playerId: string;
+  isReady: boolean;
+}
+
+export interface WordListMessage extends MessageBase {
+  type: MessageType.WordListMsg;
+  words: Word[];
+}
+
+export interface SkipWordMessage extends MessageBase {
+  type: MessageType.SkipWordMsg;
+  playerId: string;
+}
+
+export interface WordSkippedMessage extends MessageBase {
+  type: MessageType.WordSkippedMsg;
+  playerId: string;
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"sync"
 )
@@ -34,6 +35,29 @@ func GetWordStorage() (*WordStorage, error) {
 		return nil, err
 	}
 	return wordStorage, nil
+}
+
+func (ws *WordStorage) GetShuffledIds() []uint {
+	ids := make([]uint, 0, len(ws.words))
+	for id := range ws.words {
+		ids = append(ids, id)
+	}
+	rand.Shuffle(len(ids), func(i, j int) {
+		ids[i], ids[j] = ids[j], ids[i]
+	})
+	return ids
+}
+
+func (ws *WordStorage) GetWordsByIds(ids []uint) ([]*TabooWord, error) {
+	words := make([]*TabooWord, 0, len(ids))
+	for _, id := range ids {
+		word, ok := ws.words[id]
+		if !ok {
+			continue
+		}
+		words = append(words, word)
+	}
+	return words, nil
 }
 
 func (ws *WordStorage) loadWords(file string) error {

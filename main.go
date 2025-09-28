@@ -53,6 +53,7 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					continue
 				}
 				playerId = game.AddPlayer(conn, conMsg.PlayerId, conMsg.Name)
+				slog.Debug("Player ID stored", "playerId", playerId)
 				continue
 			} else {
 				playerMsg, ok := msg.(PlayerMessage)
@@ -114,7 +115,7 @@ func main() {
 		slog.Error("Failed to initialize game systems: %w", "err", err)
 		os.Exit(1)
 	}
-	game := createGame()
+	game := CreateGame()
 	go game.run() // TODO: MULTIPLE GAME ROOMS
 	http.Handle("/", http.FileServer(http.Dir("frontend/")))
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

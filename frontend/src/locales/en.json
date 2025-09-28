@@ -1,0 +1,16 @@
+{
+    "actions": {
+        "skip": "Skip"
+    },
+    "labels": {
+        "log": "Game Log"
+    },
+    "messages": {
+        "connected": "You have joined the game as {name}.",
+        "playerJoined": "Player {name} joined the game.",
+        "playerLeft": "Player {name} left the game.",
+        "skipped": "Player {name} skipped the word.",
+        "ready": "Player {name} is ready.",
+        "notReady": "Player {name} is not ready."
+    }
+}

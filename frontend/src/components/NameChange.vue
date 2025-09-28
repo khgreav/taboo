@@ -1,5 +1,6 @@
 <template>
   <div>
+    <label for="nameChangeInput">Change name</label>
     <input
       ref="nameChangeInput"
       type="text"
@@ -19,7 +20,7 @@ import { ref, type Ref } from 'vue';
 
 // player store
 const gameStore = useGameStore();
-const { playerId } = storeToRefs(gameStore);
+const { player } = storeToRefs(gameStore);
 // socket store
 const clientSocket = useSocketStore();
 const nameChange: Ref<string> = ref('');
@@ -40,7 +41,7 @@ clientSocket.$onAction(({ name, after }) => {
 const setName = (name: string) => {
   clientSocket.sendMessage({
     type: MessageType.ChangeNameMsg,
-    playerId: playerId.value,
+    playerId: player.value.id,
     name: name,
   });
 };

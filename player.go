@@ -14,8 +14,9 @@ var upgrader = websocket.Upgrader{
 }
 
 type PlayerInfo struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	IsReady bool   `json:"isReady"`
 }
 
 type Player struct {
@@ -25,6 +26,8 @@ type Player struct {
 	conn *websocket.Conn
 	// Player name
 	name string
+	// Player ready status
+	isReady bool
 	// player team
 	team int
 }

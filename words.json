@@ -2,51 +2,301 @@
   {
     "id": 1,
     "word": "Pizza",
-    "taboo": ["Cheese", "Pepperoni", "Slice", "Italian", "Crust"]
+    "taboo": ["Oven", "Toppings", "Delivery", "Restaurant", "Sliceable"]
   },
   {
     "id": 2,
     "word": "Airplane",
-    "taboo": ["Fly", "Pilot", "Airport", "Wings", "Travel"]
+    "taboo": ["Jet", "Cabin", "Runway", "Altitude", "Flightpath"]
   },
   {
     "id": 3,
     "word": "Birthday",
-    "taboo": ["Cake", "Party", "Gift", "Candles", "Celebrate"]
+    "taboo": ["Anniversary", "Age", "Surprise", "Balloons", "Tradition"]
   },
   {
     "id": 4,
     "word": "Doctor",
-    "taboo": ["Hospital", "Patient", "Medicine", "Sick", "Nurse"]
+    "taboo": ["Surgeon", "Diagnosis", "Clinic", "Stethoscope", "Prescription"]
   },
   {
     "id": 5,
     "word": "Computer",
-    "taboo": ["Keyboard", "Mouse", "Internet", "Screen", "Laptop"]
+    "taboo": ["Processor", "Software", "Data", "Coding", "Device"]
   },
   {
     "id": 6,
     "word": "Football",
-    "taboo": ["Touchdown", "Helmet", "Quarterback", "Field", "Team"]
+    "taboo": ["Goal", "Kickoff", "Referee", "Stadium", "League"]
   },
   {
     "id": 7,
     "word": "Guitar",
-    "taboo": ["Strings", "Music", "Play", "Instrument", "Pick"]
+    "taboo": ["Chords", "Fretboard", "Amplifier", "Strum", "Band"]
   },
   {
     "id": 8,
     "word": "Snow",
-    "taboo": ["White", "Cold", "Winter", "Ice", "Flake"]
+    "taboo": ["Blizzard", "Avalanche", "Powder", "Frost", "Sled"]
   },
   {
     "id": 9,
     "word": "Library",
-    "taboo": ["Books", "Read", "Quiet", "Shelves", "Borrow"]
+    "taboo": ["Archive", "Catalog", "Librarian", "Reference", "Study"]
   },
   {
     "id": 10,
     "word": "Dinosaur",
-    "taboo": ["Fossil", "Jurassic", "Extinct", "T-Rex", "Prehistoric"]
+    "taboo": ["Reptile", "Skeleton", "Ancient", "Gigantic", "Creature"]
+  },
+  {
+    "id": 11,
+    "word": "Dungeon",
+    "taboo": ["Labyrinth", "Chamber", "Darkness", "Guarded", "Chains"]
+  },
+  {
+    "id": 12,
+    "word": "Dragon",
+    "taboo": ["Mythical", "Hoard", "Serpent", "Legendary", "Roar"]
+  },
+  {
+    "id": 13,
+    "word": "Cleric",
+    "taboo": ["Priest", "Sanctuary", "Blessing", "Ritual", "Temple"]
+  },
+  {
+    "id": 14,
+    "word": "Initiative",
+    "taboo": ["Sequence", "Priority", "Start", "Orderly", "First-move"]
+  },
+  {
+    "id": 15,
+    "word": "Spellbook",
+    "taboo": ["Grimoire", "Tome", "Reference", "Rituals", "Glyphs"]
+  },
+  {
+    "id": 16,
+    "word": "Critical Hit",
+    "taboo": ["Lucky", "Strike", "Maximum", "Overpower", "Blow"]
+  },
+  {
+    "id": 17,
+    "word": "Paladin",
+    "taboo": ["Crusader", "Virtue", "Protector", "Sacred", "Champion"]
+  },
+  {
+    "id": 18,
+    "word": "Beholder",
+    "taboo": ["Orb", "Tentacles", "Horror", "Aberrant", "Stare"]
+  },
+  {
+    "id": 19,
+    "word": "Dungeon Master",
+    "taboo": ["Referee", "Overseer", "Campaign", "Guide", "Arbiter"]
+  },
+  {
+    "id": 20,
+    "word": "Rogue",
+    "taboo": ["Trickster", "Pickpocket", "Agile", "Deception", "Outlaw"]
+  },
+  {
+    "id": 21,
+    "word": "Barbarian",
+    "taboo": ["Primitive", "Savage", "Untamed", "Brute", "Nomad"]
+  },
+  {
+    "id": 22,
+    "word": "Sorcerer",
+    "taboo": ["Enchanter", "Bloodline", "Power", "Mystical", "Talent"]
+  },
+  {
+    "id": 23,
+    "word": "Warlock",
+    "taboo": ["Pactbound", "Occult", "Forbidden", "Hex", "Dark"]
+  },
+  {
+    "id": 24,
+    "word": "Fighter",
+    "taboo": ["Duelist", "Veteran", "Warrior", "Training", "Arena"]
+  },
+  {
+    "id": 25,
+    "word": "Bard",
+    "taboo": ["Storyteller", "Charmer", "Entertainer", "Poet", "Minstrel"]
+  },
+  {
+    "id": 26,
+    "word": "Ranger",
+    "taboo": ["Tracker", "Wilderness", "Scout", "Hunter", "Companion"]
+  },
+  {
+    "id": 27,
+    "word": "Wizard",
+    "taboo": ["Scholar", "Arcane", "Learned", "Ritualist", "Sage"]
+  },
+  {
+    "id": 28,
+    "word": "Hit Points",
+    "taboo": ["Vitality", "Endurance", "Stamina", "Resilience", "Toughness"]
+  },
+  {
+    "id": 29,
+    "word": "Armor Class",
+    "taboo": ["Evasion", "Resistance", "Barrier", "Safeguard", "Hardness"]
+  },
+  {
+    "id": 30,
+    "word": "Saving Throw",
+    "taboo": ["Resistance", "Check", "Survival", "Resilience", "Avoidance"]
+  },
+  {
+    "id": 31,
+    "word": "Longsword",
+    "taboo": ["Knightly", "Medieval", "Duel", "Two-handed", "Weaponry"]
+  },
+  {
+    "id": 32,
+    "word": "Shield",
+    "taboo": ["Barrier", "Guard", "Buckler", "Round", "Emblem"]
+  },
+  {
+    "id": 33,
+    "word": "Potion",
+    "taboo": ["Elixir", "Brew", "Vial", "Mixture", "Draught"]
+  },
+  {
+    "id": 34,
+    "word": "Scroll",
+    "taboo": ["Manuscript", "Inscription", "Parchment", "Seal", "Record"]
+  },
+  {
+    "id": 35,
+    "word": "Teleport",
+    "taboo": ["Portal", "Blink", "Rift", "Disappear", "Relocate"]
+  },
+  {
+    "id": 36,
+    "word": "Stealth",
+    "taboo": ["Concealment", "Camouflage", "Infiltration", "Shadow", "Subtlety"]
+  },
+  {
+    "id": 37,
+    "word": "Spellcasting",
+    "taboo": ["Ritual", "Invocation", "Channeling", "Sorcery", "Weaving"]
+  },
+  {
+    "id": 38,
+    "word": "Alignment",
+    "taboo": ["Ethos", "Philosophy", "Belief", "Principle", "Outlook"]
+  },
+  {
+    "id": 39,
+    "word": "Experience",
+    "taboo": ["Knowledge", "Practice", "Training", "Wisdom", "Growth"]
+  },
+  {
+    "id": 40,
+    "word": "Level Up",
+    "taboo": ["Advancement", "Rank", "Progress", "Promotion", "Milestone"]
+  },
+  {
+    "id": 41,
+    "word": "Magic Missile",
+    "taboo": ["Projectile", "Force", "Auto-hit", "Arcane", "Bolt"]
+  },
+  {
+    "id": 42,
+    "word": "Fireball",
+    "taboo": ["Explosion", "Inferno", "Detonation", "Blast", "Conflagration"]
+  },
+  {
+    "id": 43,
+    "word": "Shield Spell",
+    "taboo": ["Barrier", "Deflect", "Ward", "Reaction", "Safeguard"]
+  },
+  {
+    "id": 44,
+    "word": "Invisibility",
+    "taboo": ["Hidden", "Concealed", "Transparent", "Unseen", "Cloaked"]
+  },
+  {
+    "id": 45,
+    "word": "Sorcery Point",
+    "taboo": ["Resource", "Fuel", "Expenditure", "Reserve", "Energy"]
+  },
+  {
+    "id": 46,
+    "word": "Familiar",
+    "taboo": ["Companion", "Spirit", "Guide", "Animal", "Ally"]
+  },
+  {
+    "id": 47,
+    "word": "Wild Shape",
+    "taboo": ["Morph", "Beast", "Transformation", "Nature", "Form"]
+  },
+  {
+    "id": 48,
+    "word": "Spell Slot",
+    "taboo": ["Resource", "Expenditure", "Limitation", "Reserve", "Channel"]
+  },
+  {
+    "id": 49,
+    "word": "Rest",
+    "taboo": ["Recuperate", "Pause", "Downtime", "Break", "Recovery"]
+  },
+  {
+    "id": 50,
+    "word": "Surprise Round",
+    "taboo": ["Ambush", "Advantage", "Preemptive", "Sudden", "Shock"]
+  },
+  {
+    "id": 51,
+    "word": "Challenge Rating",
+    "taboo": ["Benchmark", "Difficulty", "Scale", "Ranking", "Measure"]
+  },
+  {
+    "id": 52,
+    "word": "Detect Magic",
+    "taboo": ["Sense", "Aura", "Reveal", "Identify", "Presence"]
+  },
+  {
+    "id": 53,
+    "word": "Dispel Magic",
+    "taboo": ["Nullify", "Break", "Cancel", "Suppress", "Remove"]
+  },
+  {
+    "id": 54,
+    "word": "Counterspell",
+    "taboo": ["Interrupt", "Negate", "Cancel", "Stop", "Reaction"]
+  },
+  {
+    "id": 55,
+    "word": "Mage Armor",
+    "taboo": ["Ward", "Safeguard", "Protection", "Enchantment", "Cover"]
+  },
+  {
+    "id": 56,
+    "word": "Healing Word",
+    "taboo": ["Prayer", "Restore", "Whisper", "Divine", "Aid"]
+  },
+  {
+    "id": 57,
+    "word": "Shield Bash",
+    "taboo": ["Slam", "Strike", "Impact", "Push", "Blow"]
+  },
+  {
+    "id": 58,
+    "word": "Sneak Attack",
+    "taboo": ["Ambush", "Surprise", "Strike", "Assassin", "Damage"]
+  },
+  {
+    "id": 59,
+    "word": "Mage Hand",
+    "taboo": ["Spectral", "Grip", "Carry", "Invisible", "Manipulate"]
+  },
+  {
+    "id": 60,
+    "word": "Arcane Recovery",
+    "taboo": ["Replenish", "Recharge", "Regain", "Refresh", "Restore"]
   }
 ]

@@ -12,6 +12,23 @@ input:invalid {
   border: 2px solid red;
 }
 
+.layout {
+  display: flex;
+  gap: 1rem;
+}
+
+.left-panel {
+  flex: 1;
+}
+
+.center-panel {
+  flex: 2;
+}
+
+.right-panel {
+  flex: 1;
+}
+
 .player-list {
   list-style-type: none;
   padding: 0;

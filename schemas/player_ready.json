@@ -1,27 +1,26 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "connect_ack",
+    "$id": "player_ready",
     "type": "object",
     "required": [
         "type",
         "playerId",
-        "name"
+        "isReady"
     ],
     "additionalProperties": false,
     "properties": {
         "type": {
             "title": "Message type",
-            "const": "connect_ack"
+            "const": "player_ready"
         },
         "playerId": {
             "title": "Player ID",
             "type": "string",
             "format": "uuid"
         },
-        "name": {
-            "title": "Player name",
-            "type": "string",
-            "minLength": 1
+        "isReady": {
+            "title": "Player ready status",
+            "type": "boolean"
         }
     }
 }

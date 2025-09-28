@@ -14,6 +14,16 @@ func sendUnicastMessage(player *Player, msg MessageBase) error {
 		return fmt.Errorf("failed to marshal %s message: %w", msg.GetType(), err)
 	}
 
+	ss, err := GetSchemaStorage()
+	if err != nil {
+		return fmt.Errorf("failed to get schema storage: %w", err)
+	}
+
+	err = ss.validate(msg.GetType(), data)
+	if err != nil {
+		return fmt.Errorf("failed to validate outgoing %s message: %w", msg.GetType(), err)
+	}
+
 	err = player.conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
 		return fmt.Errorf("failed to send message %s to player %s: %w", msg.GetType(), player.id, err)
@@ -26,6 +36,16 @@ func broadcastMessage(players map[string]*Player, msg MessageBase, excluded *str
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal %s message: %w", msg.GetType(), err)
+	}
+
+	ss, err := GetSchemaStorage()
+	if err != nil {
+		return fmt.Errorf("failed to get schema storage: %w", err)
+	}
+
+	err = ss.validate(msg.GetType(), data)
+	if err != nil {
+		return fmt.Errorf("failed to validate outgoing %s message: %w", msg.GetType(), err)
 	}
 
 	for _, player := range players {

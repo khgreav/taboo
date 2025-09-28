@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game';
+import { useLogStore } from '@/stores/logStore';
 import { useSocketStore } from '@/stores/socketStore';
 import {
   type ConnectAckMessage,
@@ -25,10 +26,12 @@ import {
 } from '@/types/messages';
 import { storeToRefs } from 'pinia';
 import { ref, type Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const i18n = useI18n();
 const gameStore = useGameStore();
-const { playerId } = storeToRefs(gameStore);
-// socket store
+const { player } = storeToRefs(gameStore);
+const logStore = useLogStore();
 const clientSocket = useSocketStore();
 
 const name: Ref<string> = ref('');
@@ -49,18 +52,21 @@ clientSocket.$onAction(({ name, after }) => {
 const sendConnect = () => {
   clientSocket.sendMessage<ConnectMessage>({
     type: MessageType.ConnectMsg,
-    playerId: playerId.value,
+    playerId: player.value.id,
     name: name.value
   });
 };
 
 const handleConnectAck = (message: ConnectAckMessage) => {
-  if (playerId.value === message.playerId) {
+  if (player.value.id === message.playerId) {
     console.info('Connect ID matches, acknowledged.');
     return;
   }
-  console.info('Player ID mismatch, assigning new:', playerId.value, message.playerId);
   gameStore.setPlayerId(message.playerId);
+  gameStore.setPlayerName(message.name);
   gameStore.setConnected(true);
+  logStore.addLogRecord(
+    i18n.t('messages.connected', { name: message.name }),
+  );
 };
 </script>
