@@ -1,3 +1,3 @@
-# Taboo MP
+# Taboo
 
-A multiplayer version of the party game Taboo.
+A multiplayer version of the popular party game Taboo.
