@@ -15,7 +15,7 @@
         },
         "failedType": {
             "title": "Message type",
-            "const": "error_response"
+            "type": "string"
         },
         "error": {
             "title": "Error message",

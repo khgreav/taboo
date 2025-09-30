@@ -9,13 +9,25 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type GameState int
+
+const (
+	InLobby GameState = iota
+	InProgress
+	InRound
+)
+
 type Game struct {
 	// Is the game currently running
-	running bool
+	gameState GameState
 	// Player mutex
 	playerMtx sync.RWMutex
 	// Connected players
 	players map[string]*Player
+	// Number of red team players
+	redTeamCount int
+	// Number of blue team players
+	blueTeamCount int
 	// Channel for incoming player messages
 	messages chan MessageBase
 	// IDs of words to be used in game
@@ -28,7 +40,7 @@ type Game struct {
 
 func CreateGame() *Game {
 	return &Game{
-		running:        false,
+		gameState:      InLobby,
 		playerMtx:      sync.RWMutex{},
 		players:        make(map[string]*Player, 4),
 		messages:       make(chan MessageBase),
@@ -39,7 +51,9 @@ func CreateGame() *Game {
 }
 
 func (g *Game) reset() {
-	g.running = false
+	g.gameState = InLobby
+	g.redTeamCount = 0
+	g.blueTeamCount = 0
 	g.wordIds = wordStorage.GetShuffledIds()
 	g.wordIdx = 0
 	g.currentWordIdx = 0
@@ -55,6 +69,8 @@ func (g *Game) run() {
 		switch message := message.(type) {
 		case *ChangeNameMessage:
 			err = g.changePlayerName(message.PlayerId, message.Name)
+		case *ChangeTeamMessage:
+			err = g.changePlayerTeam(message.PlayerId, message.Team)
 		case *PlayerReadyMessage:
 			err = g.changePlayerReadyStatus(message.PlayerId, message.IsReady)
 		case *SkipWordMessage:
@@ -139,6 +155,11 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 
 func (g *Game) RemovePlayer(playerId string) {
 	g.playerMtx.Lock()
+
+	player, exists := g.players[playerId]
+	if !exists {
+		slog.Error("player not found", "player_id", playerId)
+	}
 	// delete player from map
 	delete(g.players, playerId)
 
@@ -148,6 +169,14 @@ func (g *Game) RemovePlayer(playerId string) {
 		g.playerMtx.Unlock()
 		return
 	}
+
+	switch player.team {
+	case Red:
+		g.redTeamCount--
+	case Blue:
+		g.blueTeamCount--
+	}
+
 	// get copy of players to unlock early
 	players := g.GetPlayersCopyUnlocked()
 	g.playerMtx.Unlock()
@@ -194,19 +223,101 @@ func (g *Game) changePlayerName(playerId string, name string) error {
 	return nil
 }
 
-func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
+func (g *Game) changePlayerTeam(playerId string, team Team) error {
 	// lock before accessing players
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
-	if g.running {
-		return fmt.Errorf("game is already running, cannot change ready status")
-	}
 	// find player
 	player, exists := g.players[playerId]
 	if !exists {
 		return fmt.Errorf("player with ID %s not found", playerId)
 	}
+
+	if g.gameState != InLobby {
+		return fmt.Errorf("game not in lobby state, cannot change team")
+	}
+
+	if (team == Red && g.redTeamCount >= 2) || (team == Blue && g.blueTeamCount >= 2) {
+		errMsg := &ErrorResponseMessage{
+			TypeProperty: TypeProperty{
+				Type: ErrorResponseMsg,
+			},
+			FailedType: ChangeTeamMsg,
+			Error:      "Team is full.",
+		}
+		sendUnicastMessage(player, errMsg)
+		return nil
+	}
+
+	oldTeam := player.team
+	// old team is the same as team to assign, ignore
+	if oldTeam == team {
+		return nil
+	}
+
+	// change team
+	player.SetTeam(team)
+	if oldTeam == Unassigned {
+		if team == Red {
+			g.redTeamCount++
+		} else {
+			g.blueTeamCount++
+		}
+	} else {
+		if team == Red {
+			g.redTeamCount++
+			g.blueTeamCount--
+		} else if team == Blue {
+			g.redTeamCount--
+			g.blueTeamCount++
+		} else {
+			g.redTeamCount--
+			g.blueTeamCount--
+		}
+	}
+
+	players := g.GetPlayersCopyUnlocked()
+	teamChangedMsg := &TeamChangedMessage{
+		TypeProperty: TypeProperty{
+			Type: TeamChangedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: playerId,
+		},
+		Team: team,
+	}
+	broadcastMessage(players, teamChangedMsg, nil)
+	return nil
+}
+
+func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
+	// lock before accessing players
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	if g.gameState != InLobby {
+		return fmt.Errorf("game is already running, cannot change ready status")
+	}
+
+	// find player
+	player, exists := g.players[playerId]
+	if !exists {
+		return fmt.Errorf("player with ID %s not found", playerId)
+	}
+
+	if player.team == Unassigned {
+		errMsg := &ErrorResponseMessage{
+			TypeProperty: TypeProperty{
+				Type: ErrorResponseMsg,
+			},
+			FailedType: ChangeTeamMsg,
+			Error:      "Cannot set ready state if player has not chosen a team.",
+		}
+		sendUnicastMessage(player, errMsg)
+		return nil
+	}
+
 	// change ready status
 	player.isReady = isReady
 	// create ready status change message
@@ -232,8 +343,8 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
 	}
 	if canStart {
 		slog.Info("All players are ready. Starting the game...")
-		g.running = true
-		words, err := wordStorage.GetWordsByIds(g.wordIds[0:10])
+		g.gameState = InProgress
+		/*words, err := wordStorage.GetWordsByIds(g.wordIds[0:10])
 		if err != nil {
 			return fmt.Errorf("failed to get words for the game: %w", err)
 		}
@@ -243,8 +354,17 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
 				Type: WordListMsg,
 			},
 			Words: words,
+		}*/
+		gameStateMsg := &GameStateChanged{
+			TypeProperty: TypeProperty{
+				Type: GameStateChangedMsg,
+			},
+			State: InProgress,
 		}
-		broadcastMessage(players, wordListMsg, nil)
+		err := broadcastMessage(players, gameStateMsg, nil)
+		if err != nil {
+			slog.Error("Could not broadcast message.", "type", gameStateMsg.GetType(), "err", err)
+		}
 	}
 	return nil
 }
@@ -254,8 +374,8 @@ func (g *Game) skipCurrentWord(playerId string) error {
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
-	if !g.running {
-		return fmt.Errorf("game is not running, cannot skip word")
+	if g.gameState != InRound {
+		return fmt.Errorf("round is not running, cannot skip word")
 	}
 	g.currentWordIdx++
 	players := g.GetPlayersCopyUnlocked()
@@ -278,6 +398,7 @@ func (g *Game) CreatePlayerList() []PlayerInfo {
 		playerList = append(playerList, PlayerInfo{
 			Id:      p.id,
 			Name:    p.name,
+			Team:    p.team,
 			IsReady: p.isReady,
 		})
 	}

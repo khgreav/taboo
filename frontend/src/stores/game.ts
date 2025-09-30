@@ -1,13 +1,15 @@
-import type { OtherPlayer, Player } from '@/types/player';
+import { GameState } from '@/types/messages';
+import { Team, type OtherPlayer, type Player } from '@/types/player';
 import { defineStore } from 'pinia';
 import { ref, type Ref } from 'vue';
 
 export const useGameStore = defineStore('game', () => {
   const connected: Ref<boolean> = ref(false);
-  const running: Ref<boolean> = ref(false);
+  const gameState: Ref<GameState> = ref(GameState.InLobby);
   const player: Ref<Player> = ref({
     id: null,
     name: '',
+    team: Team.Unassigned,
     isReady: false,
   })
   const playerList: Ref<OtherPlayer[]> = ref([]);
@@ -39,8 +41,8 @@ export const useGameStore = defineStore('game', () => {
     connected.value = status;
   }
 
-  function setRunning(isRunning: boolean): void {
-    running.value = isRunning;
+  function setGameState(state: GameState): void {
+    gameState.value = state;
   }
 
   function setPlayerList(players: OtherPlayer[]): void {
@@ -59,6 +61,17 @@ export const useGameStore = defineStore('game', () => {
       return;
     }
     playerList.value.splice(idx, 1);
+  }
+
+  function setPlayerTeam(playerId: string, team: Team): void {
+    if (playerId === player.value.id) {
+      player.value.team = team;
+    }
+    const item = playerList.value.find(player => player.id === playerId);
+    if (!item) {
+      return;
+    }
+    item.team = team;
   }
 
   function setPlayerReady(playerId: string, isReady: boolean): void {
@@ -89,11 +102,12 @@ export const useGameStore = defineStore('game', () => {
     setPlayerId,
     getPlayerName,
     setPlayerName,
+    setPlayerTeam,
     setPlayerReadyState,
     connected,
     setConnected,
-    running,
-    setRunning,
+    gameState,
+    setGameState,
     playerList,
     setPlayerList,
     addPlayer,

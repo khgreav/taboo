@@ -1,3 +1,7 @@
+html, body {
+  height: 98vh;
+}
+
 label {
   display: block;
   margin-bottom: 4px;
@@ -22,16 +26,24 @@ input:invalid {
 }
 
 .center-panel {
-  flex: 2;
+  flex: 3;
 }
 
 .right-panel {
   flex: 1;
 }
 
+.log {
+  font-size: x-small;
+  height: 80vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  font-family: monospace;
+  border: 1px solid black;
+}
+
 .player-list {
   list-style-type: none;
-  padding: 0;
 }
 
 .current-player {

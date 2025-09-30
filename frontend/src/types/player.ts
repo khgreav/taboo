@@ -1,5 +1,12 @@
+export enum Team {
+  Unassigned = -1,
+  Red,
+  Blue
+}
+
 interface PlayerBase {
   name: string;
+  team: Team;
   isReady: boolean;
 }
 

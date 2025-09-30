@@ -20,6 +20,7 @@
                 "required": [
                     "id",
                     "name",
+                    "team",
                     "isReady"
                 ],
                 "additionalProperties": false,
@@ -33,6 +34,13 @@
                         "title": "Player name",
                         "type": "string",
                         "minLength": 1
+                    },
+                    "team": {
+                        "title": "Team",
+                        "type": "integer",
+                        "enum": [
+                            -1, 0, 1
+                        ]
                     },
                     "isReady": {
                         "title": "Player ready status",

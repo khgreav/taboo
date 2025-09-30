@@ -5,17 +5,21 @@ import "fmt"
 type MessageType string
 
 const (
-	ConnectMsg      MessageType = "connect"
-	ConnectAckMsg   MessageType = "connect_ack"
-	ChangeNameMsg   MessageType = "change_name"
-	NameChangedMsg  MessageType = "name_changed"
-	PlayerJoinedMsg MessageType = "player_joined"
-	PlayerLeftMsg   MessageType = "player_left"
-	PlayerListMsg   MessageType = "player_list"
-	PlayerReadyMsg  MessageType = "player_ready"
-	WordListMsg     MessageType = "word_list"
-	SkipWordMsg     MessageType = "skip_word"
-	WordSkippedMsg  MessageType = "word_skipped"
+	ErrorResponseMsg    MessageType = "error_response"
+	ConnectMsg          MessageType = "connect"
+	ConnectAckMsg       MessageType = "connect_ack"
+	ChangeNameMsg       MessageType = "change_name"
+	NameChangedMsg      MessageType = "name_changed"
+	PlayerJoinedMsg     MessageType = "player_joined"
+	PlayerLeftMsg       MessageType = "player_left"
+	PlayerListMsg       MessageType = "player_list"
+	ChangeTeamMsg       MessageType = "change_team"
+	TeamChangedMsg      MessageType = "team_changed"
+	PlayerReadyMsg      MessageType = "player_ready"
+	GameStateChangedMsg MessageType = "game_state_changed"
+	WordListMsg         MessageType = "word_list"
+	SkipWordMsg         MessageType = "skip_word"
+	WordSkippedMsg      MessageType = "word_skipped"
 )
 
 type MessageBase interface {
@@ -41,6 +45,12 @@ func (prop PlayerIdProperty) GetPlayerId() string {
 type PlayerMessage interface {
 	MessageBase
 	GetPlayerId() string
+}
+
+type ErrorResponseMessage struct {
+	TypeProperty
+	FailedType MessageType `json:"failedType"`
+	Error      string      `json:"error"`
 }
 
 type ConnectMessage struct {
@@ -83,10 +93,27 @@ type PlayerListMessage struct {
 	Players []PlayerInfo `json:"players"`
 }
 
+type ChangeTeamMessage struct {
+	TypeProperty
+	PlayerIdProperty
+	Team Team `json:"team"`
+}
+
+type TeamChangedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+	Team Team `json:"team"`
+}
+
 type PlayerReadyMessage struct {
 	TypeProperty
 	PlayerIdProperty
 	IsReady bool `json:"isReady"`
+}
+
+type GameStateChanged struct {
+	TypeProperty
+	State GameState `json:"state"`
 }
 
 type WordListMessage struct {
@@ -110,6 +137,8 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 		return &ConnectMessage{}, nil
 	case ChangeNameMsg:
 		return &ChangeNameMessage{}, nil
+	case ChangeTeamMsg:
+		return &ChangeTeamMessage{}, nil
 	case PlayerReadyMsg:
 		return &PlayerReadyMessage{}, nil
 	case SkipWordMsg:

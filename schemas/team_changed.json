@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "team_changed",
+    "type": "object",
+    "required": [
+        "type",
+        "playerId",
+        "team"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "team_changed"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "type": "string",
+            "format": "uuid"
+        },
+        "team": {
+            "title": "Team",
+            "type": "integer",
+            "enum": [
+                -1, 0, 1
+            ]
+        }
+    }
+}

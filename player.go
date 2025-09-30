@@ -13,9 +13,18 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+type Team int
+
+const (
+	Unassigned Team = -1
+	Red        Team = 0
+	Blue       Team = 1
+)
+
 type PlayerInfo struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`
+	Team    Team   `json:"team"`
 	IsReady bool   `json:"isReady"`
 }
 
@@ -29,11 +38,19 @@ type Player struct {
 	// Player ready status
 	isReady bool
 	// player team
-	team int
+	team Team
 }
 
 func (p *Player) SetName(name string) {
 	p.name = name
+}
+
+func (p *Player) SetReady(ready bool) {
+	p.isReady = ready
+}
+
+func (p *Player) SetTeam(team Team) {
+	p.team = team
 }
 
 func generatePlayerId() string {

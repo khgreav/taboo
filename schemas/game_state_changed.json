@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "game_state_changed",
+    "type": "object",
+    "required": [
+        "type",
+        "state"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "game_state_changed"
+        },
+        "state": {
+            "title": "Game state",
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ]
+        }
+    }
+}

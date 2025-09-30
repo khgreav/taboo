@@ -1,9 +1,11 @@
 <template>
-  <div>
-    <label>{{ $t('labels.log') }}</label>
-    <div v-for="(log, index) in logs" :key="index" class="log-entry">
-      <span class="timestamp">{{ new Date(log.timestamp).toLocaleTimeString() }}:</span>
-      <span class="message">{{ log.message }}</span>
+  <label>{{ $t('sections.log') }}</label>
+  <div class="log">
+    <div
+      v-for="(log, index) in logs"
+      :key="index"
+    >
+      <span>{{ `${new Date(log.timestamp).toLocaleTimeString()}: ${log.message}` }}</span>
     </div>
   </div>
 </template>

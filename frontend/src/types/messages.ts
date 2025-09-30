@@ -9,10 +9,19 @@ export enum MessageType {
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
   PlayerListMsg = 'player_list',
+  ChangeTeamMsg = 'change_team',
+  TeamChangedMsg = 'team_changed',
   PlayerReadyMsg = 'player_ready',
+  GameStateChangedMsg = 'game_state_changed',
   WordListMsg = 'word_list',
   SkipWordMsg = 'skip_word',
   WordSkippedMsg = 'word_skipped',
+}
+
+export enum GameState {
+  InLobby = 0,
+  InProgress,
+  InRound
 }
 
 export interface MessageBase {
@@ -59,10 +68,27 @@ export interface PlayerListMessage extends MessageBase {
   players: OtherPlayer[];
 }
 
+export interface ChangeTeamMessage extends MessageBase {
+  type: MessageType.ChangeTeamMsg;
+  playerId: string;
+  team: number;
+}
+
+export interface TeamChangedMessage extends MessageBase {
+  type: MessageType.TeamChangedMsg;
+  playerId: string;
+  team: number;
+}
+
 export interface PlayerReadyMessage extends MessageBase {
   type: MessageType.PlayerReadyMsg;
   playerId: string;
   isReady: boolean;
+}
+
+export interface GameStateChangedMessage extends MessageBase {
+  type: MessageType.GameStateChangedMsg;
+  state: GameState;
 }
 
 export interface WordListMessage extends MessageBase {
