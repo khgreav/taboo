@@ -5,11 +5,14 @@ import (
 	"log/slog"
 	"maps"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type GameState int
+
+const RoundDuration = 60
 
 const (
 	InLobby GameState = iota
@@ -36,6 +39,8 @@ type Game struct {
 	wordIdx uint
 	// Index of the current word
 	currentWordIdx uint
+	// Current round information
+	currentRound *Round
 }
 
 func CreateGame() *Game {
@@ -43,10 +48,13 @@ func CreateGame() *Game {
 		gameState:      InLobby,
 		playerMtx:      sync.RWMutex{},
 		players:        make(map[string]*Player, 4),
+		redTeamCount:   0,
+		blueTeamCount:  0,
 		messages:       make(chan MessageBase),
 		wordIds:        wordStorage.GetShuffledIds(),
 		wordIdx:        0,
 		currentWordIdx: 0,
+		currentRound:   nil,
 	}
 }
 
@@ -72,7 +80,11 @@ func (g *Game) run() {
 		case *ChangeTeamMessage:
 			err = g.changePlayerTeam(message.PlayerId, message.Team)
 		case *PlayerReadyMessage:
-			err = g.changePlayerReadyStatus(message.PlayerId, message.IsReady)
+			var allReady bool
+			allReady, err = g.changePlayerReadyStatus(message.PlayerId, message.IsReady)
+			if allReady {
+				g.startRound()
+			}
 		case *SkipWordMessage:
 			err = g.skipCurrentWord(message.PlayerId)
 		default:
@@ -291,19 +303,19 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 	return nil
 }
 
-func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
+func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, error) {
 	// lock before accessing players
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
 	if g.gameState != InLobby {
-		return fmt.Errorf("game is already running, cannot change ready status")
+		return false, fmt.Errorf("game is already running, cannot change ready status")
 	}
 
 	// find player
 	player, exists := g.players[playerId]
 	if !exists {
-		return fmt.Errorf("player with ID %s not found", playerId)
+		return false, fmt.Errorf("player with ID %s not found", playerId)
 	}
 
 	if player.team == Unassigned {
@@ -315,7 +327,7 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
 			Error:      "Cannot set ready state if player has not chosen a team.",
 		}
 		sendUnicastMessage(player, errMsg)
-		return nil
+		return false, nil
 	}
 
 	// change ready status
@@ -334,39 +346,66 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) error {
 	players := g.GetPlayersCopyUnlocked()
 	// broadcast ready status change
 	broadcastMessage(players, msg, nil)
-	canStart := true
+	allReady := true
 	for _, p := range players {
 		if !p.isReady {
-			canStart = false
+			allReady = false
 			break
 		}
 	}
-	if canStart {
-		slog.Info("All players are ready. Starting the game...")
-		g.gameState = InProgress
-		/*words, err := wordStorage.GetWordsByIds(g.wordIds[0:10])
-		if err != nil {
-			return fmt.Errorf("failed to get words for the game: %w", err)
-		}
-		g.wordIdx += 10
-		wordListMsg := &WordListMessage{
-			TypeProperty: TypeProperty{
-				Type: WordListMsg,
-			},
-			Words: words,
-		}*/
-		gameStateMsg := &GameStateChanged{
-			TypeProperty: TypeProperty{
-				Type: GameStateChangedMsg,
-			},
-			State: InProgress,
-		}
-		err := broadcastMessage(players, gameStateMsg, nil)
-		if err != nil {
-			slog.Error("Could not broadcast message.", "type", gameStateMsg.GetType(), "err", err)
-		}
+	return allReady, nil
+}
+
+func (g *Game) startRound() {
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+	g.gameState = InRound
+
+	// pick words and broadcast to players
+	words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordIdx : g.wordIdx+10])
+	if err != nil {
+		// TODO: handle this situation better, game can start, but words are nowhere to be found
+		slog.Error("Failed to get words for round", "err", err)
+		return
 	}
-	return nil
+	g.wordIdx += 10
+	// create or update round
+	if g.currentRound == nil {
+		// first round
+		team := Red
+		guesserId, hintGiverId := g.selectTeamPlayers(team)
+		if guesserId == "" || hintGiverId == "" {
+			slog.Error("Not enough players to start round")
+			return
+		}
+		g.currentRound = &Round{
+			Team:        team,
+			GuesserId:   guesserId,
+			HintGiverId: hintGiverId,
+			Duration:    RoundDuration,
+			Words:       words,
+		}
+	} else {
+		// subsequent rounds, switch teams
+		team := g.currentRound.Team.GetOppositeTeam()
+		guesserId, hintGiverId := g.selectTeamPlayers(team)
+		if guesserId == "" || hintGiverId == "" {
+			slog.Error("Not enough players to start round")
+			return
+		}
+		g.currentRound.Team = team
+		g.currentRound.GuesserId = guesserId
+		g.currentRound.HintGiverId = hintGiverId
+		g.currentRound.Words = words
+	}
+	// generate round start time
+	g.currentRound.StartTime = time.Now().UnixMilli() + 5000
+	// broadcast round start message
+	players := g.GetPlayersCopyUnlocked()
+	startRoundMsg := g.currentRound.CreateStartRoundMessage()
+	broadcastMessage(players, startRoundMsg, nil)
+
+	// TODO: start end round goroutine with duration
 }
 
 func (g *Game) skipCurrentWord(playerId string) error {
@@ -389,6 +428,19 @@ func (g *Game) skipCurrentWord(playerId string) error {
 	}
 	broadcastMessage(players, skippedMsg, nil)
 	return nil
+}
+
+func (g *Game) selectTeamPlayers(team Team) (string, string) {
+	players := make([]string, 0)
+	for _, p := range g.players {
+		if p.team == team {
+			players = append(players, p.id)
+		}
+	}
+	if len(players) < 2 {
+		return "", ""
+	}
+	return players[0], players[1]
 }
 
 func (g *Game) CreatePlayerList() []PlayerInfo {

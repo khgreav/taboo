@@ -20,6 +20,8 @@ const (
 	WordListMsg         MessageType = "word_list"
 	SkipWordMsg         MessageType = "skip_word"
 	WordSkippedMsg      MessageType = "word_skipped"
+	StartRoundMsg       MessageType = "start_round"
+	EndRoundMsg         MessageType = "end_round"
 )
 
 type MessageBase interface {
@@ -129,6 +131,16 @@ type SkipWordMessage struct {
 type WordSkippedMessage struct {
 	TypeProperty
 	PlayerIdProperty
+}
+
+type StartRoundMessage struct {
+	TypeProperty
+	Team        Team         `json:"team"`
+	GuesserId   string       `json:"guesserId"`
+	HintGiverId string       `json:"hintGiverId"`
+	StartTime   int64        `json:"startTime"`
+	Duration    int          `json:"duration"`
+	Words       []*TabooWord `json:"words"`
 }
 
 func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {

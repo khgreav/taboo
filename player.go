@@ -13,14 +13,6 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-type Team int
-
-const (
-	Unassigned Team = -1
-	Red        Team = 0
-	Blue       Team = 1
-)
-
 type PlayerInfo struct {
 	Id      string `json:"id"`
 	Name    string `json:"name"`
