@@ -15,6 +15,8 @@ export enum MessageType {
   GameStateChangedMsg = 'game_state_changed',
   WordListMsg = 'word_list',
   SkipWordMsg = 'skip_word',
+  GuessWordMsg = 'guess_word',
+  WordGuessedMsg = 'word_guessed',
   WordSkippedMsg = 'word_skipped',
 }
 
@@ -104,4 +106,16 @@ export interface SkipWordMessage extends MessageBase {
 export interface WordSkippedMessage extends MessageBase {
   type: MessageType.WordSkippedMsg;
   playerId: string;
+}
+
+export interface GuessWordMessage extends MessageBase {
+  type: MessageType.GuessWordMsg;
+  playerId: string;
+}
+
+export interface WordGuessedMessage extends MessageBase {
+  type: MessageType.WordGuessedMsg;
+  playerId: string;
+  redScore: number;
+  blueScore: number;
 }

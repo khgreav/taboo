@@ -27,18 +27,18 @@ type Game struct {
 	playerMtx sync.RWMutex
 	// Connected players
 	players map[string]*Player
-	// Number of red team players
-	redTeamCount int
-	// Number of blue team players
-	blueTeamCount int
+	// Red team
+	redTeam TeamState
+	// Blue team
+	blueTeam TeamState
 	// Channel for incoming player messages
 	messages chan MessageBase
 	// IDs of words to be used in game
 	wordIds []uint
 	// Index of the start of next batch
-	wordIdx uint
-	// Index of the current word
-	currentWordIdx uint
+	wordOffset uint
+	// Index of the currently guessed word
+	guessedWordIdx uint
 	// Current round information
 	currentRound *Round
 }
@@ -48,23 +48,23 @@ func CreateGame() *Game {
 		gameState:      InLobby,
 		playerMtx:      sync.RWMutex{},
 		players:        make(map[string]*Player, 4),
-		redTeamCount:   0,
-		blueTeamCount:  0,
+		redTeam:        TeamState{},
+		blueTeam:       TeamState{},
 		messages:       make(chan MessageBase),
 		wordIds:        wordStorage.GetShuffledIds(),
-		wordIdx:        0,
-		currentWordIdx: 0,
+		wordOffset:     0,
+		guessedWordIdx: 0,
 		currentRound:   nil,
 	}
 }
 
 func (g *Game) reset() {
 	g.gameState = InLobby
-	g.redTeamCount = 0
-	g.blueTeamCount = 0
+	g.redTeam = TeamState{}
+	g.blueTeam = TeamState{}
 	g.wordIds = wordStorage.GetShuffledIds()
-	g.wordIdx = 0
-	g.currentWordIdx = 0
+	g.wordOffset = 0
+	g.guessedWordIdx = 0
 	for k := range g.players {
 		delete(g.players, k)
 	}
@@ -83,10 +83,14 @@ func (g *Game) run() {
 			var allReady bool
 			allReady, err = g.changePlayerReadyStatus(message.PlayerId, message.IsReady)
 			if allReady {
-				g.startRound()
+				g.prepareRound()
 			}
+		case *StartRoundMessage:
+			g.startRound(message.PlayerId)
 		case *SkipWordMessage:
 			err = g.skipCurrentWord(message.PlayerId)
+		case *GuessWordMessage:
+			err = g.guessWord(message.PlayerId)
 		default:
 			slog.Warn("Unknown message type", "type", message.GetType())
 		}
@@ -184,9 +188,9 @@ func (g *Game) RemovePlayer(playerId string) {
 
 	switch player.team {
 	case Red:
-		g.redTeamCount--
+		g.redTeam.MemberCount--
 	case Blue:
-		g.blueTeamCount--
+		g.blueTeam.MemberCount--
 	}
 
 	// get copy of players to unlock early
@@ -250,7 +254,7 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 		return fmt.Errorf("game not in lobby state, cannot change team")
 	}
 
-	if (team == Red && g.redTeamCount >= 2) || (team == Blue && g.blueTeamCount >= 2) {
+	if (team == Red && g.redTeam.MemberCount >= MaxTeamMembers) || (team == Blue && g.blueTeam.MemberCount >= MaxTeamMembers) {
 		errMsg := &ErrorResponseMessage{
 			TypeProperty: TypeProperty{
 				Type: ErrorResponseMsg,
@@ -272,20 +276,21 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 	player.SetTeam(team)
 	if oldTeam == Unassigned {
 		if team == Red {
-			g.redTeamCount++
+			g.redTeam.MemberCount++
 		} else {
-			g.blueTeamCount++
+			g.blueTeam.MemberCount++
 		}
 	} else {
-		if team == Red {
-			g.redTeamCount++
-			g.blueTeamCount--
-		} else if team == Blue {
-			g.redTeamCount--
-			g.blueTeamCount++
-		} else {
-			g.redTeamCount--
-			g.blueTeamCount--
+		switch team {
+		case Red:
+			g.redTeam.MemberCount++
+			g.blueTeam.MemberCount--
+		case Blue:
+			g.redTeam.MemberCount--
+			g.blueTeam.MemberCount++
+		default:
+			g.redTeam.MemberCount--
+			g.blueTeam.MemberCount--
 		}
 	}
 
@@ -309,6 +314,7 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 	defer g.playerMtx.Unlock()
 
 	if g.gameState != InLobby {
+		sendErrorMessage(g.players[playerId], ChangeTeamMsg, "Game is already running, cannot change ready status.")
 		return false, fmt.Errorf("game is already running, cannot change ready status")
 	}
 
@@ -319,15 +325,8 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 	}
 
 	if player.team == Unassigned {
-		errMsg := &ErrorResponseMessage{
-			TypeProperty: TypeProperty{
-				Type: ErrorResponseMsg,
-			},
-			FailedType: ChangeTeamMsg,
-			Error:      "Cannot set ready state if player has not chosen a team.",
-		}
-		sendUnicastMessage(player, errMsg)
-		return false, nil
+		sendErrorMessage(player, ChangeTeamMsg, "Cannot set ready state if player has not chosen a team.")
+		return false, fmt.Errorf("cannot set ready state if player has not chosen a team")
 	}
 
 	// change ready status
@@ -356,19 +355,18 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 	return allReady, nil
 }
 
-func (g *Game) startRound() {
+func (g *Game) prepareRound() {
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
-	g.gameState = InRound
 
 	// pick words and broadcast to players
-	words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordIdx : g.wordIdx+10])
+	words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
 	if err != nil {
 		// TODO: handle this situation better, game can start, but words are nowhere to be found
 		slog.Error("Failed to get words for round", "err", err)
 		return
 	}
-	g.wordIdx += 10
+	g.wordOffset += 10
 	// create or update round
 	if g.currentRound == nil {
 		// first round
@@ -398,14 +396,104 @@ func (g *Game) startRound() {
 		g.currentRound.HintGiverId = hintGiverId
 		g.currentRound.Words = words
 	}
-	// generate round start time
-	g.currentRound.StartTime = time.Now().UnixMilli() + 5000
-	// broadcast round start message
+	// broadcast round prepare message
 	players := g.GetPlayersCopyUnlocked()
-	startRoundMsg := g.currentRound.CreateStartRoundMessage()
-	broadcastMessage(players, startRoundMsg, nil)
+	startRoundMsg := g.currentRound.CreateRoundSetupMessage()
+	err = broadcastMessage(players, startRoundMsg, nil)
+	if err != nil {
+		slog.Error("Failed to broadcast round setup message", "err", err)
+		return
+	}
 
-	// TODO: start end round goroutine with duration
+	g.gameState = InProgress
+}
+
+func (g *Game) startRound(playerId string) {
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	if g.gameState != InProgress {
+		sendErrorMessage(g.players[playerId], StartRoundMsg, "Cannot start round, game not in progress state.")
+		slog.Warn("Cannot start round, game not in progress state.")
+		return
+	}
+
+	if playerId != g.currentRound.HintGiverId {
+		sendErrorMessage(g.players[playerId], StartRoundMsg, "Only the hint giver can start the round.")
+		slog.Warn("Only the hint giver can start the round.", "player_id", playerId)
+		return
+	}
+
+	players := g.GetPlayersCopyUnlocked()
+	roundStartedMsg := g.currentRound.CreateRoundStartedMessage()
+	err := broadcastMessage(players, roundStartedMsg, nil)
+	if err != nil {
+		slog.Error("Failed to broadcast round started message", "err", err)
+		return
+	}
+
+	go func(duration int) {
+		time.Sleep(time.Duration(duration) * time.Second)
+		g.endRound()
+	}(g.currentRound.Duration)
+}
+
+func (g *Game) endRound() {
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	if g.gameState != InRound {
+		slog.Warn("Cannot end round, game not in round state")
+		return
+	}
+
+	g.gameState = InProgress
+	players := g.GetPlayersCopyUnlocked()
+	endRoundMsg := g.currentRound.CreateRoundEndedMessage()
+	err := broadcastMessage(players, endRoundMsg, nil)
+	if err != nil {
+		slog.Error("Failed to broadcast round ended message", "err", err)
+		return
+	}
+}
+
+func (g *Game) guessWord(playerId string) error {
+	// lock before accessing players
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	player := g.players[playerId]
+
+	if g.gameState != InRound {
+		sendErrorMessage(player, SkipWordMsg, "Round is not running, cannot guess word.")
+		return fmt.Errorf("round is not running, cannot guess word")
+	}
+
+	if g.currentRound.GuesserId != playerId {
+		sendErrorMessage(player, SkipWordMsg, "Only the hin giver can mark a guess.")
+		return fmt.Errorf("only the hin giver can mark a guess")
+	}
+
+	if player.team == Red {
+		g.redTeam.Score++
+	} else {
+		g.blueTeam.Score++
+	}
+	g.guessedWordIdx++
+
+	players := g.GetPlayersCopyUnlocked()
+	guessedMsg := &WordGuessedMessage{
+		TypeProperty: TypeProperty{
+			Type: WordSkippedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: playerId,
+		},
+		RedScore:  g.redTeam.Score,
+		BlueScore: g.blueTeam.Score,
+	}
+	broadcastMessage(players, guessedMsg, nil)
+	return nil
 }
 
 func (g *Game) skipCurrentWord(playerId string) error {
@@ -414,9 +502,16 @@ func (g *Game) skipCurrentWord(playerId string) error {
 	defer g.playerMtx.Unlock()
 
 	if g.gameState != InRound {
+		sendErrorMessage(g.players[playerId], SkipWordMsg, "Round is not running, cannot skip word.")
 		return fmt.Errorf("round is not running, cannot skip word")
 	}
-	g.currentWordIdx++
+
+	if g.currentRound.HintGiverId != playerId {
+		sendErrorMessage(g.players[playerId], SkipWordMsg, "Only the hint giver can skip.")
+		return fmt.Errorf("only the hint giver can skip words")
+	}
+
+	g.guessedWordIdx++
 	players := g.GetPlayersCopyUnlocked()
 	skippedMsg := &WordSkippedMessage{
 		TypeProperty: TypeProperty{

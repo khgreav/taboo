@@ -11,7 +11,12 @@
       </li>
     </ul>
     <hr />
-    <button :disabled="currentWordIndex === words.length - 1">Correct guess</button>
+    <button
+      :disabled="currentWordIndex === words.length - 1"
+      @click="guessWord()"
+    >
+      {{ $t('actions.guess') }}
+    </button>
     <button
       :disabled="currentWordIndex === words.length - 1"
       @click="skipWord()"
@@ -22,22 +27,21 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/game';
+import { useGameStore } from '@/stores/gameStore';
 import { useLogStore } from '@/stores/logStore';
 import { useSocketStore } from '@/stores/socketStore';
-import { MessageType, type WordListMessage, type WordSkippedMessage } from '@/types/messages';
-import type { Word } from '@/types/words';
+import { useWordStore } from '@/stores/wordStore';
+import { MessageType, type WordGuessedMessage, type WordListMessage, type WordSkippedMessage } from '@/types/messages';
 import { storeToRefs } from 'pinia';
-import { ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const i18n = useI18n();
 const gameStore = useGameStore();
 const { player } = storeToRefs(gameStore);
+const wordStore = useWordStore();
+const { words, currentWordIndex } = storeToRefs(wordStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
-const words: Ref<Word[]> = ref([]);
-const currentWordIndex: Ref<number> = ref(0);
 
 clientSocket.$onAction(({ name, after }) => {
   if (name === 'onMessage') {
@@ -50,25 +54,48 @@ clientSocket.$onAction(({ name, after }) => {
         case MessageType.WordSkippedMsg:
           handleWordSkipped(message as WordSkippedMessage);
           break;
+        case MessageType.WordGuessedMsg:
+          handleWordGuessed(message as WordGuessedMessage);
+          break;
       }
     });
   }
 });
 
 const handleWordList = (message: WordListMessage) => {
-  words.value = words.value.concat(message.words);
+  wordStore.addWords(message.words);
+};
+
+const guessWord = () => {
+  clientSocket.sendMessage({
+    type: MessageType.GuessWordMsg,
+    playerId: player.value.id,
+  });
+}
+
+const handleWordGuessed = (message: WordGuessedMessage) => {
+  gameStore.setRedScore(message.redScore);
+  gameStore.setBlueScore(message.blueScore);
+  wordStore.advanceWord();
+  const playerName = gameStore.getPlayerName(message.playerId);
+  if (!playerName) {
+    return;
+  }
+  logStore.addLogRecord(
+    i18n.t('messages.guessed', { name: playerName }),
+  );
 };
 
 const skipWord = () => {
   clientSocket.sendMessage({
     type: MessageType.SkipWordMsg,
-    playerId: player.value.id, // TODO: get player ID from store
+    playerId: player.value.id,
   });
 }
 
 const handleWordSkipped = (message: WordSkippedMessage) => {
   void message; // TODO use message if needed
-  currentWordIndex.value++;
+  wordStore.advanceWord();
   const playerName = gameStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;

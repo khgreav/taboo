@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "start_round",
+    "type": "object",
+    "required": [
+        "type",
+        "playerId"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "title": "Message type",
+            "const": "start_round"
+        },
+        "playerId": {
+            "title": "Player ID",
+            "type": "string",
+            "format": "uuid"
+        }
+    }
+}

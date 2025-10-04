@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/game';
+import { useGameStore } from '@/stores/gameStore';
 import { GameState } from '@/types/messages';
 import { Team, type OtherPlayer } from '@/types/player';
 import { storeToRefs } from 'pinia';

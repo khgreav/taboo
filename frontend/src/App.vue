@@ -18,7 +18,7 @@ import ConnectName from '@/components/ConnectName.vue';
 import GameLog from '@/components/GameLog.vue';
 import PlayerPanel from '@/components/PlayerPanel.vue';
 import WordList from '@/components/WordList.vue';
-import { useGameStore } from '@/stores/game';
+import { useGameStore } from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
 
 import { storeToRefs } from 'pinia';

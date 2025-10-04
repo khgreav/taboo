@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/game';
+import { useGameStore } from '@/stores/gameStore';
 import { useSocketStore } from '@/stores/socketStore';
 import { MessageType, type MessageBase, type NameChangedMessage } from '@/types/messages';
 import { storeToRefs } from 'pinia';

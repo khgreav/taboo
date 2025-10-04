@@ -5,23 +5,32 @@ import "fmt"
 type MessageType string
 
 const (
-	ErrorResponseMsg    MessageType = "error_response"
-	ConnectMsg          MessageType = "connect"
-	ConnectAckMsg       MessageType = "connect_ack"
+	// general messages
+	ErrorResponseMsg MessageType = "error_response"
+	// player connections
+	ConnectMsg      MessageType = "connect"
+	ConnectAckMsg   MessageType = "connect_ack"
+	PlayerJoinedMsg MessageType = "player_joined"
+	PlayerLeftMsg   MessageType = "player_left"
+	// lobby state
+	PlayerListMsg       MessageType = "player_list"
 	ChangeNameMsg       MessageType = "change_name"
 	NameChangedMsg      MessageType = "name_changed"
-	PlayerJoinedMsg     MessageType = "player_joined"
-	PlayerLeftMsg       MessageType = "player_left"
-	PlayerListMsg       MessageType = "player_list"
 	ChangeTeamMsg       MessageType = "change_team"
 	TeamChangedMsg      MessageType = "team_changed"
 	PlayerReadyMsg      MessageType = "player_ready"
 	GameStateChangedMsg MessageType = "game_state_changed"
-	WordListMsg         MessageType = "word_list"
-	SkipWordMsg         MessageType = "skip_word"
-	WordSkippedMsg      MessageType = "word_skipped"
-	StartRoundMsg       MessageType = "start_round"
-	EndRoundMsg         MessageType = "end_round"
+	// game rounds
+	RoundSetupMsg   MessageType = "round_setup"
+	StartRoundMsg   MessageType = "start_round"
+	RoundStartedMsg MessageType = "round_started"
+	RoundEndedMsg   MessageType = "round_ended"
+	// round actions
+	SkipWordMsg    MessageType = "skip_word"
+	WordSkippedMsg MessageType = "word_skipped"
+	GuessWordMsg   MessageType = "guess_word"
+	WordGuessedMsg MessageType = "word_guessed"
+	WordListMsg    MessageType = "word_list"
 )
 
 type MessageBase interface {
@@ -113,7 +122,7 @@ type PlayerReadyMessage struct {
 	IsReady bool `json:"isReady"`
 }
 
-type GameStateChanged struct {
+type GameStateChangedMessage struct {
 	TypeProperty
 	State GameState `json:"state"`
 }
@@ -133,14 +142,39 @@ type WordSkippedMessage struct {
 	PlayerIdProperty
 }
 
-type StartRoundMessage struct {
+type GuessWordMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type WordGuessedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+	RedScore  int `json:"redScore"`
+	BlueScore int `json:"blueScore"`
+}
+
+type RoundSetupMessage struct {
 	TypeProperty
 	Team        Team         `json:"team"`
 	GuesserId   string       `json:"guesserId"`
 	HintGiverId string       `json:"hintGiverId"`
-	StartTime   int64        `json:"startTime"`
 	Duration    int          `json:"duration"`
 	Words       []*TabooWord `json:"words"`
+}
+
+type StartRoundMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type RoundStartedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type RoundEndedMessage struct {
+	TypeProperty
 }
 
 func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
@@ -153,8 +187,12 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 		return &ChangeTeamMessage{}, nil
 	case PlayerReadyMsg:
 		return &PlayerReadyMessage{}, nil
+	case StartRoundMsg:
+		return &StartRoundMessage{}, nil
 	case SkipWordMsg:
 		return &SkipWordMessage{}, nil
+	case GuessWordMsg:
+		return &GuessWordMessage{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported message type: %s", messageType)
 	}

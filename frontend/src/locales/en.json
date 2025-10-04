@@ -1,5 +1,6 @@
 {
     "actions": {
+        "guess": "Guess",
         "skip": "Skip"
     },
     "sections": {
@@ -34,6 +35,7 @@
         "playerJoined": "Player {name} joined the game.",
         "playerLeft": "Player {name} left the game.",
         "skipped": "Player {name} skipped the word.",
+        "guessed": "Player {name} marked word correct guess.",
         "ready": "Player {name} is ready.",
         "notReady": "Player {name} is not ready.",
         "teamChanged": "Player {name} changed their team to {team}."

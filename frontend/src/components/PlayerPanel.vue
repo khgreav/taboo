@@ -42,7 +42,7 @@
 </template>
 
 <script lang="ts" setup>
-import { useGameStore } from '@/stores/game';
+import { useGameStore } from '@/stores/gameStore';
 import { useLogStore } from '@/stores/logStore';
 import { useSocketStore } from '@/stores/socketStore';
 import {

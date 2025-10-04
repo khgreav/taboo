@@ -13,6 +13,8 @@ export const useGameStore = defineStore('game', () => {
     isReady: false,
   })
   const playerList: Ref<OtherPlayer[]> = ref([]);
+  const redScore: Ref<number> = ref(0);
+  const blueScore: Ref<number> = ref(0);
 
   function setPlayerId(id: string): void {
     player.value.id = id;
@@ -85,6 +87,14 @@ export const useGameStore = defineStore('game', () => {
     item.isReady = isReady;
   }
 
+  function setRedScore(score: number): void {
+    redScore.value = score;
+  }
+
+  function setBlueScore(score: number): void {
+    blueScore.value = score;
+  }
+
   function sortPlayerList(): void {
     playerList.value.sort((a: Player, b: Player) => {
       if (a.id === player.value.id) {
@@ -113,5 +123,9 @@ export const useGameStore = defineStore('game', () => {
     addPlayer,
     removePlayer,
     setPlayerReady,
+    redScore,
+    setRedScore,
+    blueScore,
+    setBlueScore,
   };
 });
