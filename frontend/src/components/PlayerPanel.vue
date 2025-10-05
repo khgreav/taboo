@@ -59,10 +59,14 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import PlayerList from './PlayerList.vue';
+import { usePlayerStore } from '@/stores/playerStore';
+import { teamToString } from '@/utils/team';
 
 const i18n = useI18n();
+const playerStore = usePlayerStore();
+const { player, playerList } = storeToRefs(playerStore);
 const gameStore = useGameStore();
-const { player, playerList, gameState } = storeToRefs(gameStore);
+const { gameState } = storeToRefs(gameStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 
@@ -146,13 +150,13 @@ const changeTeam = (team: Team) => {
 };
 
 const handleTeamChanged = (message: TeamChangedMessage) => {
-  gameStore.setPlayerTeam(message.playerId, message.team)
-  const playerName = gameStore.getPlayerName(message.playerId);
+  playerStore.setPlayerTeam(message.playerId, message.team)
+  const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;
   }
   logStore.addLogRecord(
-    i18n.t('messages.teamChanged', { name: playerName, team: message.team }),
+    i18n.t('messages.teamChanged', { name: playerName, team: teamToString(message.team, i18n) }),
   );
 };
 
@@ -165,11 +169,11 @@ const changeReadyState = () => {
 };
 
 const handlePlayerList = (message: PlayerListMessage) => {
-  gameStore.setPlayerList(message.players);
+  playerStore.setPlayerList(message.players);
 };
 
 const handlePlayerJoined = (message: PlayerJoinedMessage) => {
-  gameStore.addPlayer({
+  playerStore.addPlayer({
     id: message.playerId,
     name: message.name,
     team: Team.Unassigned,
@@ -182,8 +186,8 @@ const handlePlayerJoined = (message: PlayerJoinedMessage) => {
 };
 
 const handlePlayerLeft = (message: PlayerLeftMessage) => {
-  gameStore.removePlayer(message.playerId);
-  const playerName = gameStore.getPlayerName(message.playerId);
+  playerStore.removePlayer(message.playerId);
+  const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;
   }
@@ -193,8 +197,8 @@ const handlePlayerLeft = (message: PlayerLeftMessage) => {
 };
 
 const handlePlayerReady = (message: PlayerReadyMessage) => {
-  gameStore.setPlayerReady(message.playerId, message.isReady);
-  const playerName = gameStore.getPlayerName(message.playerId);
+  playerStore.setPlayerReady(message.playerId, message.isReady);
+  const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;
   }

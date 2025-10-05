@@ -7,7 +7,7 @@ export const useWordStore = defineStore('wordStore', () => {
   const currentWordIndex: Ref<number> = ref(0);
 
   function addWords(newWords: Word[]): void {
-    words.value.concat(newWords);
+    words.value = words.value.concat(newWords);
   }
 
   function advanceWord(): void {

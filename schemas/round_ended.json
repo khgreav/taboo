@@ -3,8 +3,7 @@
     "$id": "round_ended",
     "type": "object",
     "required": [
-        "type",
-        "playerId"
+        "type"
     ],
     "additionalProperties": false,
     "properties": {

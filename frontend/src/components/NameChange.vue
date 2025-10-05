@@ -12,15 +12,15 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/gameStore';
+import { usePlayerStore } from '@/stores/playerStore';
 import { useSocketStore } from '@/stores/socketStore';
 import { MessageType, type MessageBase, type NameChangedMessage } from '@/types/messages';
 import { storeToRefs } from 'pinia';
 import { ref, type Ref } from 'vue';
 
 // player store
-const gameStore = useGameStore();
-const { player } = storeToRefs(gameStore);
+const playerStore = usePlayerStore();
+const { player } = storeToRefs(playerStore);
 // socket store
 const clientSocket = useSocketStore();
 const nameChange: Ref<string> = ref('');
@@ -47,7 +47,6 @@ const setName = (name: string) => {
 };
 
 const handleNameChanged = (message: NameChangedMessage) => {
-  console.info('Name changed to:', message.name);
-  gameStore.setPlayerName(message.name);
+  playerStore.setPlayerName(message.name);
 };
 </script>

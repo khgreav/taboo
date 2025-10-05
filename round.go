@@ -10,7 +10,7 @@ type Round struct {
 
 func (r Round) CreateRoundSetupMessage() *RoundSetupMessage {
 	return &RoundSetupMessage{
-		TypeProperty: TypeProperty{Type: StartRoundMsg},
+		TypeProperty: TypeProperty{Type: RoundSetupMsg},
 		Team:         r.Team,
 		GuesserId:    r.GuesserId,
 		HintGiverId:  r.HintGiverId,

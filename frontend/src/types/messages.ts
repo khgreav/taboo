@@ -1,23 +1,33 @@
-import type { OtherPlayer } from './player';
+import type { OtherPlayer, Team } from './player';
 import type { Word } from './words';
 
 export enum MessageType {
+  // general messages
+  ErrorResponseMsg = 'error_response',
+  // player connections
   ConnectMsg = 'connect',
   ConnectAckMsg = 'connect_ack',
-  ChangeNameMsg = 'change_name',
-  NameChangedMsg = 'name_changed',
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
+  // lobby state
   PlayerListMsg = 'player_list',
+  ChangeNameMsg = 'change_name',
+  NameChangedMsg = 'name_changed',
   ChangeTeamMsg = 'change_team',
   TeamChangedMsg = 'team_changed',
   PlayerReadyMsg = 'player_ready',
   GameStateChangedMsg = 'game_state_changed',
-  WordListMsg = 'word_list',
+  // game rounds
+  RoundSetupMsg = 'round_setup',
+  StartRoundMsg = 'start_round',
+  RoundStartedMsg = 'round_started',
+  RoundEndedMsg = 'round_ended',
+  // round actions
   SkipWordMsg = 'skip_word',
+  WordSkippedMsg = 'word_skipped',
   GuessWordMsg = 'guess_word',
   WordGuessedMsg = 'word_guessed',
-  WordSkippedMsg = 'word_skipped',
+  WordListMsg = 'word_list',
 }
 
 export enum GameState {
@@ -118,4 +128,23 @@ export interface WordGuessedMessage extends MessageBase {
   playerId: string;
   redScore: number;
   blueScore: number;
+}
+
+export interface RoundSetupMessage extends MessageBase {
+  type: MessageType.RoundSetupMsg;
+  team: Team;
+  guesserId: string;
+  hintGiverId: string;
+  duration: number;
+  words: Word[];
+}
+
+export interface StartRoundMessage extends MessageBase {
+  type: MessageType.StartRoundMsg;
+  playerId: string;
+}
+
+export interface RoundStartedMessage extends MessageBase {
+  type: MessageType.RoundStartedMsg;
+  playerId: string;
 }

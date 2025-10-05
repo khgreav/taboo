@@ -15,8 +15,8 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from '@/stores/gameStore';
 import { useLogStore } from '@/stores/logStore';
+import { usePlayerStore } from '@/stores/playerStore';
 import { useSocketStore } from '@/stores/socketStore';
 import {
   type ConnectAckMessage,
@@ -29,8 +29,8 @@ import { ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const i18n = useI18n();
-const gameStore = useGameStore();
-const { player } = storeToRefs(gameStore);
+const playerStore = usePlayerStore();
+const { player } = storeToRefs(playerStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 
@@ -62,9 +62,9 @@ const handleConnectAck = (message: ConnectAckMessage) => {
     console.info('Connect ID matches, acknowledged.');
     return;
   }
-  gameStore.setPlayerId(message.playerId);
-  gameStore.setPlayerName(message.name);
-  gameStore.setConnected(true);
+  playerStore.setPlayerId(message.playerId);
+  playerStore.setPlayerName(message.name);
+  playerStore.setConnected(true);
   logStore.addLogRecord(
     i18n.t('messages.connected', { name: message.name }),
   );

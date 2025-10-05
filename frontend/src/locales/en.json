@@ -1,7 +1,8 @@
 {
     "actions": {
         "guess": "Guess",
-        "skip": "Skip"
+        "skip": "Skip",
+        "startRound": "Start round"
     },
     "sections": {
         "log": "Game log"
@@ -38,6 +39,11 @@
         "guessed": "Player {name} marked word correct guess.",
         "ready": "Player {name} is ready.",
         "notReady": "Player {name} is not ready.",
-        "teamChanged": "Player {name} changed their team to {team}."
+        "teamChanged": "Player {name} changed their team to {team}.",
+        "roundDuration": "Round duration set to {duration} seconds.",
+        "guesserSelected": "Player {name} is guesses this round.",
+        "hintGiverSelected": "Player {name} is gives hints this round.",
+        "waitingToStart": "Waiting for {name} to start the round.",
+        "roundStarted": "Player {name} started the round."
     }
 }

@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/gameStore';
 import { useLogStore } from '@/stores/logStore';
+import { usePlayerStore } from '@/stores/playerStore';
 import { useSocketStore } from '@/stores/socketStore';
 import { useWordStore } from '@/stores/wordStore';
 import { MessageType, type WordGuessedMessage, type WordListMessage, type WordSkippedMessage } from '@/types/messages';
@@ -36,8 +37,9 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 
 const i18n = useI18n();
+const playerStore = usePlayerStore();
+const { player } = storeToRefs(playerStore);
 const gameStore = useGameStore();
-const { player } = storeToRefs(gameStore);
 const wordStore = useWordStore();
 const { words, currentWordIndex } = storeToRefs(wordStore);
 const logStore = useLogStore();
@@ -77,7 +79,7 @@ const handleWordGuessed = (message: WordGuessedMessage) => {
   gameStore.setRedScore(message.redScore);
   gameStore.setBlueScore(message.blueScore);
   wordStore.advanceWord();
-  const playerName = gameStore.getPlayerName(message.playerId);
+  const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;
   }
@@ -96,7 +98,7 @@ const skipWord = () => {
 const handleWordSkipped = (message: WordSkippedMessage) => {
   void message; // TODO use message if needed
   wordStore.advanceWord();
-  const playerName = gameStore.getPlayerName(message.playerId);
+  const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {
     return;
   }

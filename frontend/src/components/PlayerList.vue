@@ -1,5 +1,5 @@
 <template>
-  {{ teamTitle }}
+  {{ teamTitle }} <span v-if="team !== Team.Unassigned">{{ teamScore }}</span>
   <ul class="player-list">
     <li
       v-for="item in players"
@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { useGameStore } from '@/stores/gameStore';
+import { usePlayerStore } from '@/stores/playerStore';
 import { GameState } from '@/types/messages';
 import { Team, type OtherPlayer } from '@/types/player';
 import { storeToRefs } from 'pinia';
@@ -38,8 +39,18 @@ const componentProps = defineProps({
   },
 });
 const i18n = useI18n();
+const playerStore = usePlayerStore();
+const { player } = storeToRefs(playerStore);
 const gameStore = useGameStore();
-const { player, gameState } = storeToRefs(gameStore);
+const { gameState, redScore, blueScore } = storeToRefs(gameStore);
+
+const teamScore = computed(() => {
+  if (componentProps.team === Team.Red) {
+    return redScore.value;
+  } else {
+    return blueScore.value;
+  }
+})
 
 const teamTitle = computed(() => {
   switch (componentProps.team) {

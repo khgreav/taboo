@@ -65,6 +65,7 @@ func (g *Game) reset() {
 	g.wordIds = wordStorage.GetShuffledIds()
 	g.wordOffset = 0
 	g.guessedWordIdx = 0
+	g.currentRound = nil
 	for k := range g.players {
 		delete(g.players, k)
 	}
@@ -432,6 +433,8 @@ func (g *Game) startRound(playerId string) {
 		return
 	}
 
+	g.gameState = InRound
+
 	go func(duration int) {
 		time.Sleep(time.Duration(duration) * time.Second)
 		g.endRound()
@@ -469,8 +472,8 @@ func (g *Game) guessWord(playerId string) error {
 		return fmt.Errorf("round is not running, cannot guess word")
 	}
 
-	if g.currentRound.GuesserId != playerId {
-		sendErrorMessage(player, SkipWordMsg, "Only the hin giver can mark a guess.")
+	if g.currentRound.HintGiverId != playerId {
+		sendErrorMessage(player, SkipWordMsg, "Only the hint giver can mark a guess.")
 		return fmt.Errorf("only the hin giver can mark a guess")
 	}
 
@@ -484,7 +487,7 @@ func (g *Game) guessWord(playerId string) error {
 	players := g.GetPlayersCopyUnlocked()
 	guessedMsg := &WordGuessedMessage{
 		TypeProperty: TypeProperty{
-			Type: WordSkippedMsg,
+			Type: WordGuessedMsg,
 		},
 		PlayerIdProperty: PlayerIdProperty{
 			PlayerId: playerId,
