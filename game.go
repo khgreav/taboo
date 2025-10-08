@@ -27,10 +27,10 @@ type Game struct {
 	playerMtx sync.RWMutex
 	// Connected players
 	players map[string]*Player
-	// Red team
-	redTeam TeamState
-	// Blue team
-	blueTeam TeamState
+	// Player IDs per team
+	teamPlayers map[Team][]string
+	// Team scores
+	teamScores map[Team]int
 	// Channel for incoming player messages
 	messages chan MessageBase
 	// IDs of words to be used in game
@@ -38,7 +38,9 @@ type Game struct {
 	// Index of the start of next batch
 	wordOffset uint
 	// Index of the currently guessed word
-	guessedWordIdx uint
+	currentWordIdx uint
+	// Current round number
+	roundNumber uint
 	// Current round information
 	currentRound *Round
 }
@@ -48,23 +50,25 @@ func CreateGame() *Game {
 		gameState:      InLobby,
 		playerMtx:      sync.RWMutex{},
 		players:        make(map[string]*Player, 4),
-		redTeam:        TeamState{},
-		blueTeam:       TeamState{},
+		teamPlayers:    make(map[Team][]string),
+		teamScores:     make(map[Team]int),
 		messages:       make(chan MessageBase),
 		wordIds:        wordStorage.GetShuffledIds(),
 		wordOffset:     0,
-		guessedWordIdx: 0,
+		currentWordIdx: 0,
+		roundNumber:    0,
 		currentRound:   nil,
 	}
 }
 
 func (g *Game) reset() {
 	g.gameState = InLobby
-	g.redTeam = TeamState{}
-	g.blueTeam = TeamState{}
+	g.teamScores[Red] = 0
+	g.teamScores[Blue] = 0
 	g.wordIds = wordStorage.GetShuffledIds()
 	g.wordOffset = 0
-	g.guessedWordIdx = 0
+	g.currentWordIdx = 0
+	g.roundNumber = 0
 	g.currentRound = nil
 	for k := range g.players {
 		delete(g.players, k)
@@ -187,12 +191,7 @@ func (g *Game) RemovePlayer(playerId string) {
 		return
 	}
 
-	switch player.team {
-	case Red:
-		g.redTeam.MemberCount--
-	case Blue:
-		g.blueTeam.MemberCount--
-	}
+	// TODO: REMOVE PLAYER FROM TEAM PLAYER MAP
 
 	// get copy of players to unlock early
 	players := g.GetPlayersCopyUnlocked()
@@ -294,6 +293,7 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 			g.blueTeam.MemberCount--
 		}
 	}
+	player.SetReady(false)
 
 	players := g.GetPlayersCopyUnlocked()
 	teamChangedMsg := &TeamChangedMessage{
@@ -368,35 +368,22 @@ func (g *Game) prepareRound() {
 		return
 	}
 	g.wordOffset += 10
-	// create or update round
-	if g.currentRound == nil {
-		// first round
-		team := Red
-		guesserId, hintGiverId := g.selectTeamPlayers(team)
-		if guesserId == "" || hintGiverId == "" {
-			slog.Error("Not enough players to start round")
-			return
-		}
-		g.currentRound = &Round{
-			Team:        team,
-			GuesserId:   guesserId,
-			HintGiverId: hintGiverId,
-			Duration:    RoundDuration,
-			Words:       words,
-		}
-	} else {
-		// subsequent rounds, switch teams
-		team := g.currentRound.Team.GetOppositeTeam()
-		guesserId, hintGiverId := g.selectTeamPlayers(team)
-		if guesserId == "" || hintGiverId == "" {
-			slog.Error("Not enough players to start round")
-			return
-		}
-		g.currentRound.Team = team
-		g.currentRound.GuesserId = guesserId
-		g.currentRound.HintGiverId = hintGiverId
-		g.currentRound.Words = words
+	// select team and players for round
+	team := selectTeam(g.roundNumber)
+	hintGiverId, guesserId := g.selectTeamPlayers(team, g.roundNumber)
+	if hintGiverId == "" || guesserId == "" {
+		slog.Warn("Not enough players to start the round")
+		return
 	}
+	// create round object
+	g.currentRound = &Round{
+		Team:        team,
+		GuesserId:   guesserId,
+		HintGiverId: hintGiverId,
+		Duration:    RoundDuration,
+		Words:       words,
+	}
+
 	// broadcast round prepare message
 	players := g.GetPlayersCopyUnlocked()
 	startRoundMsg := g.currentRound.CreateRoundSetupMessage()
@@ -451,6 +438,7 @@ func (g *Game) endRound() {
 	}
 
 	g.gameState = InProgress
+	g.roundNumber++
 	players := g.GetPlayersCopyUnlocked()
 	endRoundMsg := g.currentRound.CreateRoundEndedMessage()
 	err := broadcastMessage(players, endRoundMsg, nil)
@@ -482,7 +470,7 @@ func (g *Game) guessWord(playerId string) error {
 	} else {
 		g.blueTeam.Score++
 	}
-	g.guessedWordIdx++
+	g.currentWordIdx++
 
 	players := g.GetPlayersCopyUnlocked()
 	guessedMsg := &WordGuessedMessage{
@@ -496,6 +484,30 @@ func (g *Game) guessWord(playerId string) error {
 		BlueScore: g.blueTeam.Score,
 	}
 	broadcastMessage(players, guessedMsg, nil)
+
+	if (g.wordOffset - g.currentWordIdx) <= 5 {
+		// pick words and broadcast to players
+		words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
+		if err != nil {
+			slog.Error("Failed to get new batch of words", "err", err)
+			return fmt.Errorf("failed to get new batch of words: %w", err)
+		}
+		g.wordOffset += 10
+
+		wordListMsg := &WordListMessage{
+			TypeProperty: TypeProperty{
+				Type: WordListMsg,
+			},
+			Words: words,
+		}
+
+		err = broadcastMessage(players, wordListMsg, nil)
+		if err != nil {
+			slog.Error("Failed to broadcast word list message", "err", err)
+			return fmt.Errorf("failed to broadcast word list message: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -514,7 +526,7 @@ func (g *Game) skipCurrentWord(playerId string) error {
 		return fmt.Errorf("only the hint giver can skip words")
 	}
 
-	g.guessedWordIdx++
+	g.currentWordIdx++
 	players := g.GetPlayersCopyUnlocked()
 	skippedMsg := &WordSkippedMessage{
 		TypeProperty: TypeProperty{
@@ -525,10 +537,42 @@ func (g *Game) skipCurrentWord(playerId string) error {
 		},
 	}
 	broadcastMessage(players, skippedMsg, nil)
+
+	if (g.wordOffset - g.currentWordIdx) <= 5 {
+		// pick words and broadcast to players
+		words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
+		if err != nil {
+			slog.Error("Failed to get new batch of words", "err", err)
+			return fmt.Errorf("failed to get new batch of words: %w", err)
+		}
+		g.wordOffset += 10
+
+		wordListMsg := &WordListMessage{
+			TypeProperty: TypeProperty{
+				Type: WordListMsg,
+			},
+			Words: words,
+		}
+
+		err = broadcastMessage(players, wordListMsg, nil)
+		if err != nil {
+			slog.Error("Failed to broadcast word list message", "err", err)
+			return fmt.Errorf("failed to broadcast word list message: %w", err)
+		}
+	}
+
 	return nil
 }
 
-func (g *Game) selectTeamPlayers(team Team) (string, string) {
+func selectTeam(round uint) Team {
+	team := Red
+	if round%2 == 1 {
+		team = Blue
+	}
+	return team
+}
+
+func (g *Game) selectTeamPlayers(team Team, round uint) (string, string) {
 	players := make([]string, 0)
 	for _, p := range g.players {
 		if p.team == team {

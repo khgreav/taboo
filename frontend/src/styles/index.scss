@@ -16,6 +16,23 @@ input:invalid {
   border: 2px solid red;
 }
 
+.centered {
+  display: flex;
+  justify-content: center;
+  height: 100%;
+}
+
+.centered-column {
+  text-align: center;
+  justify-content: flex-start;
+  flex-direction: column;
+  align-items: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
 .layout {
   display: flex;
   gap: 1rem;

@@ -1,4 +1,7 @@
 <template>
+  <header>
+    <h1 class="text-center">{{ $t('title') }}</h1>
+  </header>
   <div class="layout">
     <div class="left-panel">
       <GameLog v-if="connected" />

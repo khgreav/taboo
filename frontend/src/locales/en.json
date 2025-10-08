@@ -1,4 +1,5 @@
 {
+    "title": "Taboo",
     "actions": {
         "guess": "Guess",
         "skip": "Skip",
@@ -26,6 +27,20 @@
                 "blue": "Blue team",
                 "unassigned": "Unassigned"
             }
+        },
+        "roleBanner": {
+            "team": {
+                "red": "Red team's turn.",
+                "blue": "Blue team's turn."
+            },
+            "guesser": {
+                "player": "You are guessing this round.",
+                "other": "{name} is guessing this round."
+            },
+            "hintGiver": {
+                "player": "You are giving hints this round.",
+                "other": "{name} is giving hints this round."
+            }
         }
     },
     "messages": {
@@ -43,7 +58,7 @@
         "roundDuration": "Round duration set to {duration} seconds.",
         "guesserSelected": "Player {name} is guesses this round.",
         "hintGiverSelected": "Player {name} is gives hints this round.",
-        "waitingToStart": "Waiting for {name} to start the round.",
+        "waitingToStart": "Waiting for player {name} to start the round.",
         "roundStarted": "Player {name} started the round."
     }
 }

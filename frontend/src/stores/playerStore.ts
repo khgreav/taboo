@@ -60,12 +60,14 @@ export const usePlayerStore = defineStore('playerStore', () => {
   function setPlayerTeam(playerId: string, team: Team): void {
     if (playerId === player.value.id) {
       player.value.team = team;
+      player.value.isReady = false;
     }
     const item = playerList.value.find(player => player.id === playerId);
     if (!item) {
       return;
     }
     item.team = team;
+    item.isReady = false;
   }
 
   function setPlayerReady(playerId: string, isReady: boolean): void {
