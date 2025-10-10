@@ -5,10 +5,11 @@
     <GameStart v-if="gameState === GameState.InProgress" />
     <div v-if="gameState === GameState.InRound">
       <div>
-        {{ timeLeft }}
+        <h3>
+          {{ `${$t('components.wordList.roundTime')}: ${timeLeft}` }}
+        </h3>
       </div>
       <WordList v-if="player.id !== guesserId" />
-      <RoundControls v-if="player.id === hintGiverId" />
     </div>
   </div>
 </template>
@@ -18,7 +19,6 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 
 import ConnectName from '@/components/ConnectName.vue';
-import RoundControls from '@/components/RoundControls.vue';
 import WordList from '@/components/WordList.vue';
 import GameStart from '@/components/GameStart.vue';
 import RoleBanner from '@/components/RoleBanner.vue';
@@ -42,7 +42,7 @@ import {
 
 const i18n = useI18n();
 const gameStore = useGameStore();
-const { gameState, guesserId, hintGiverId, duration } = storeToRefs(gameStore);
+const { gameState, guesserId, duration } = storeToRefs(gameStore);
 const playerStore = usePlayerStore();
 const { player } = storeToRefs(playerStore);
 const { connected } = storeToRefs(playerStore);
@@ -108,13 +108,13 @@ const handleRoundSetup = (message: RoundSetupMessage) => {
     i18n.t('messages.roundDuration', { duration: message.duration }),
   );
   gameStore.setCurrentTeam(message.team)
-  gameStore.setGuesserId(message.guesserId);
-  logStore.addLogRecord(
-    i18n.t('messages.guesserSelected', { name: playerStore.getPlayerName(message.guesserId) }),
-  );
   gameStore.setHintGiverId(message.hintGiverId);
   logStore.addLogRecord(
     i18n.t('messages.hintGiverSelected', { name: playerStore.getPlayerName(message.hintGiverId) }),
+  );
+  gameStore.setGuesserId(message.guesserId);
+  logStore.addLogRecord(
+    i18n.t('messages.guesserSelected', { name: playerStore.getPlayerName(message.guesserId) }),
   );
   wordStore.addWords(message.words);
 }
@@ -141,7 +141,6 @@ const handleWordGuessed = (message: WordGuessedMessage) => {
 };
 
 const handleWordSkipped = (message: WordSkippedMessage) => {
-  void message; // TODO use message if needed
   wordStore.advanceWord();
   const playerName = playerStore.getPlayerName(message.playerId);
   if (!playerName) {

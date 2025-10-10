@@ -1,29 +1,23 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "change_team",
-    "type": "object",
-    "required": [
-        "type",
-        "playerId",
-        "team"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "change_team"
-        },
-        "playerId": {
-            "title": "Player ID",
-            "type": "string",
-            "format": "uuid"
-        },
-        "team": {
-            "title": "Team",
-            "type": "integer",
-            "enum": [
-                -1, 0, 1
-            ]
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "change_team",
+  "type": "object",
+  "required": ["type", "playerId", "team"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "change_team"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "team": {
+      "title": "Team",
+      "type": "integer",
+      "enum": [-1, 0, 1]
     }
+  }
 }

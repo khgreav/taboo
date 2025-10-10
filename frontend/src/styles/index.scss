@@ -8,6 +8,11 @@ label {
   font-weight: bold;
 }
 
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
 input:valid {
   border: 2px solid green;
 }
@@ -59,9 +64,7 @@ input:invalid {
   border: 1px solid black;
 }
 
-.player-list {
-  list-style-type: none;
-}
+
 
 .current-player {
   font-weight: bold;

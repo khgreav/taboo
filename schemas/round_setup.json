@@ -1,78 +1,65 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "round_setup",
-    "type": "object",
-    "required": [
-        "type",
-        "team",
-        "guesserId",
-        "hintGiverId",
-        "duration",
-        "words"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "round_setup"
-        },
-        "team": {
-            "title": "Playing team",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "round_setup",
+  "type": "object",
+  "required": ["type", "team", "guesserId", "hintGiverId", "duration", "words"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "round_setup"
+    },
+    "team": {
+      "title": "Playing team",
+      "type": "integer",
+      "enum": [0, 1]
+    },
+    "guesserId": {
+      "title": "Guesser Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "hintGiverId": {
+      "title": "Hint Giver Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "duration": {
+      "title": "Round duration in seconds",
+      "type": "integer",
+      "minimum": 60
+    },
+    "words": {
+      "title": "List of random words",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "word", "taboo"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Word ID",
             "type": "integer",
-            "enum": [
-                0, 1
-            ]
-        },
-        "guesserId": {
-            "title": "Guesser Player ID",
+            "minimum": 1
+          },
+          "word": {
+            "title": "Guessed word",
             "type": "string",
-            "format": "uuid"
-        },
-        "hintGiverId": {
-            "title": "Hint Giver Player ID",
-            "type": "string",
-            "format": "uuid"
-        },
-        "duration": {
-            "title": "Round duration in seconds",
-            "type": "integer",
-            "minimum": 60
-        },
-        "words": {
-            "title": "List of random words",
+            "minLength": 1
+          },
+          "taboo": {
+            "title": "Taboo words",
             "type": "array",
             "items": {
-                "type": "object",
-                "required": [
-                    "id",
-                    "word",
-                    "taboo"
-                ],
-                "additionalProperties": false,
-                "properties": {
-                    "id": {
-                        "title": "Word ID",
-                        "type": "integer",
-                        "minimum": 1
-                    },
-                    "word": {
-                        "title": "Guessed word",
-                        "type": "string",
-                        "minLength": 1
-                    },
-                    "taboo": {
-                        "title": "Taboo words",
-                        "type": "array",
-                        "items": {
-                            "type": "string",
-                            "minLength": 1
-                        },
-                        "minItems": 5,
-                        "maxItems": 5,
-                        "uniqueItems": true
-                    }
-                }
-            }
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 5,
+            "maxItems": 5,
+            "uniqueItems": true
+          }
         }
+      }
     }
+  }
 }

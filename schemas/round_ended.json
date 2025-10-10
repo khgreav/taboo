@@ -1,15 +1,13 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "round_ended",
-    "type": "object",
-    "required": [
-        "type"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "round_ended"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "round_ended",
+  "type": "object",
+  "required": ["type"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "round_ended"
     }
+  }
 }

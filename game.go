@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -43,6 +44,10 @@ type Game struct {
 	roundNumber uint
 	// Current round information
 	currentRound *Round
+	// Round cancel context
+	roundCtx context.Context
+	// Round cancel function
+	roundCancel context.CancelFunc
 }
 
 func CreateGame() *Game {
@@ -58,11 +63,19 @@ func CreateGame() *Game {
 		currentWordIdx: 0,
 		roundNumber:    0,
 		currentRound:   nil,
+		roundCtx:       nil,
+		roundCancel:    nil,
 	}
 }
 
 func (g *Game) reset() {
+	if g.roundCancel != nil {
+		g.roundCancel()
+		g.roundCancel = nil
+	}
 	g.gameState = InLobby
+	g.teamPlayers[Red] = []string{}
+	g.teamPlayers[Blue] = []string{}
 	g.teamScores[Red] = 0
 	g.teamScores[Blue] = 0
 	g.wordIds = wordStorage.GetShuffledIds()
@@ -191,7 +204,13 @@ func (g *Game) RemovePlayer(playerId string) {
 		return
 	}
 
-	// TODO: REMOVE PLAYER FROM TEAM PLAYER MAP
+	// remove player from team player list
+	for i, v := range g.teamPlayers[player.team] {
+		if v == playerId {
+			g.teamPlayers[player.team] = append(g.teamPlayers[player.team][:i], g.teamPlayers[player.team][i+1:]...)
+			break
+		}
+	}
 
 	// get copy of players to unlock early
 	players := g.GetPlayersCopyUnlocked()
@@ -216,6 +235,7 @@ func (g *Game) changePlayerName(playerId string, name string) error {
 	// find player
 	player, exists := g.players[playerId]
 	if !exists {
+		g.playerMtx.Unlock()
 		return fmt.Errorf("player with ID %s not found", playerId)
 	}
 	// change name
@@ -254,7 +274,7 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 		return fmt.Errorf("game not in lobby state, cannot change team")
 	}
 
-	if (team == Red && g.redTeam.MemberCount >= MaxTeamMembers) || (team == Blue && g.blueTeam.MemberCount >= MaxTeamMembers) {
+	if len(g.teamPlayers[team]) >= MaxTeamMembers {
 		errMsg := &ErrorResponseMessage{
 			TypeProperty: TypeProperty{
 				Type: ErrorResponseMsg,
@@ -275,23 +295,19 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 	// change team
 	player.SetTeam(team)
 	if oldTeam == Unassigned {
-		if team == Red {
-			g.redTeam.MemberCount++
-		} else {
-			g.blueTeam.MemberCount++
-		}
+		g.teamPlayers[team] = append(g.teamPlayers[team], playerId)
+		slog.Debug("Player assigned to team", "player_id", playerId, "team", team, "teamplayers", g.teamPlayers)
 	} else {
-		switch team {
-		case Red:
-			g.redTeam.MemberCount++
-			g.blueTeam.MemberCount--
-		case Blue:
-			g.redTeam.MemberCount--
-			g.blueTeam.MemberCount++
-		default:
-			g.redTeam.MemberCount--
-			g.blueTeam.MemberCount--
+		for i, v := range g.teamPlayers[oldTeam] {
+			if v == playerId {
+				g.teamPlayers[oldTeam] = append(g.teamPlayers[oldTeam][:i], g.teamPlayers[oldTeam][i+1:]...)
+				break
+			}
 		}
+		if team != Unassigned {
+			g.teamPlayers[team] = append(g.teamPlayers[team], playerId)
+		}
+		slog.Debug("Player changed team", "player_id", playerId, "old_team", oldTeam, "new_team", team, "teamplayers", g.teamPlayers)
 	}
 	player.SetReady(false)
 
@@ -370,11 +386,12 @@ func (g *Game) prepareRound() {
 	g.wordOffset += 10
 	// select team and players for round
 	team := selectTeam(g.roundNumber)
-	hintGiverId, guesserId := g.selectTeamPlayers(team, g.roundNumber)
-	if hintGiverId == "" || guesserId == "" {
-		slog.Warn("Not enough players to start the round")
+	if len(g.teamPlayers[team]) < 2 {
+		slog.Error("Not enough players to start the round")
 		return
 	}
+
+	hintGiverId, guesserId := g.selectTeamPlayers(team, g.roundNumber)
 	// create round object
 	g.currentRound = &Round{
 		Team:        team,
@@ -422,18 +439,24 @@ func (g *Game) startRound(playerId string) {
 
 	g.gameState = InRound
 
-	go func(duration int) {
-		time.Sleep(time.Duration(duration) * time.Second)
-		g.endRound()
-	}(g.currentRound.Duration)
+	g.roundCtx, g.roundCancel = context.WithCancel(context.Background())
+	go func(ctx context.Context, duration int) {
+		select {
+		case <-time.After(time.Duration(duration) * time.Second):
+			g.endRound()
+		case <-ctx.Done():
+			slog.Info("Round cancelled")
+			return
+		}
+	}(g.roundCtx, g.currentRound.Duration)
 }
 
 func (g *Game) endRound() {
 	g.playerMtx.Lock()
-	defer g.playerMtx.Unlock()
 
 	if g.gameState != InRound {
 		slog.Warn("Cannot end round, game not in round state")
+		g.playerMtx.Unlock()
 		return
 	}
 
@@ -446,6 +469,8 @@ func (g *Game) endRound() {
 		slog.Error("Failed to broadcast round ended message", "err", err)
 		return
 	}
+	g.playerMtx.Unlock()
+	g.prepareRound()
 }
 
 func (g *Game) guessWord(playerId string) error {
@@ -465,11 +490,7 @@ func (g *Game) guessWord(playerId string) error {
 		return fmt.Errorf("only the hin giver can mark a guess")
 	}
 
-	if player.team == Red {
-		g.redTeam.Score++
-	} else {
-		g.blueTeam.Score++
-	}
+	g.teamScores[player.team]++
 	g.currentWordIdx++
 
 	players := g.GetPlayersCopyUnlocked()
@@ -480,8 +501,8 @@ func (g *Game) guessWord(playerId string) error {
 		PlayerIdProperty: PlayerIdProperty{
 			PlayerId: playerId,
 		},
-		RedScore:  g.redTeam.Score,
-		BlueScore: g.blueTeam.Score,
+		RedScore:  g.teamScores[Red],
+		BlueScore: g.teamScores[Blue],
 	}
 	broadcastMessage(players, guessedMsg, nil)
 
@@ -573,16 +594,10 @@ func selectTeam(round uint) Team {
 }
 
 func (g *Game) selectTeamPlayers(team Team, round uint) (string, string) {
-	players := make([]string, 0)
-	for _, p := range g.players {
-		if p.team == team {
-			players = append(players, p.id)
-		}
+	if (round/2)%2 == 0 {
+		return g.teamPlayers[team][0], g.teamPlayers[team][1]
 	}
-	if len(players) < 2 {
-		return "", ""
-	}
-	return players[0], players[1]
+	return g.teamPlayers[team][1], g.teamPlayers[team][0]
 }
 
 func (g *Game) CreatePlayerList() []PlayerInfo {

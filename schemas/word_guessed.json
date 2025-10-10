@@ -1,33 +1,28 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "word_guessed",
-    "type": "object",
-    "required": [
-        "type",
-        "playerId",
-        "redScore",
-        "blueScore"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "word_guessed"
-        },
-        "playerId": {
-            "title": "Player ID",
-            "type": "string",
-            "format": "uuid"
-        },
-        "redScore": {
-            "title": "Red Team Score",
-            "type": "integer",
-            "minimum": 0
-        },
-        "blueScore": {
-            "title": "Blue Team Score",
-            "type": "integer",
-            "minimum": 0
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "word_guessed",
+  "type": "object",
+  "required": ["type", "playerId", "redScore", "blueScore"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "word_guessed"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "redScore": {
+      "title": "Red Team Score",
+      "type": "integer",
+      "minimum": 0
+    },
+    "blueScore": {
+      "title": "Blue Team Score",
+      "type": "integer",
+      "minimum": 0
     }
+  }
 }

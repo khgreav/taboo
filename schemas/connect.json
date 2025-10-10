@@ -1,34 +1,30 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "connect",
-    "type": "object",
-    "required": [
-        "type",
-        "playerId",
-        "name"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "connect"
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "connect",
+  "type": "object",
+  "required": ["type", "playerId", "name"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "connect"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uuid"
         },
-        "playerId": {
-            "title": "Player ID",
-            "oneOf": [
-                {
-                    "type": "string",
-                    "format": "uuid"
-                },
-                {
-                    "type": "null"
-                }
-            ]
-        },
-        "name": {
-            "title": "Player name",
-            "type": "string",
-            "minLength": 1
+        {
+          "type": "null"
         }
+      ]
+    },
+    "name": {
+      "title": "Player name",
+      "type": "string",
+      "minLength": 1
     }
+  }
 }

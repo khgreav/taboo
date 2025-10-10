@@ -1,21 +1,18 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "round_started",
-    "type": "object",
-    "required": [
-        "type",
-        "playerId"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "round_started"
-        },
-        "playerId": {
-            "title": "Player ID",
-            "type": "string",
-            "format": "uuid"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "round_started",
+  "type": "object",
+  "required": ["type", "playerId"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "round_started"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
     }
+  }
 }

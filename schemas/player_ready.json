@@ -1,26 +1,22 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "player_ready",
-    "type": "object",
-    "required": [
-        "type",
-        "playerId",
-        "isReady"
-    ],
-    "additionalProperties": false,
-    "properties": {
-        "type": {
-            "title": "Message type",
-            "const": "player_ready"
-        },
-        "playerId": {
-            "title": "Player ID",
-            "type": "string",
-            "format": "uuid"
-        },
-        "isReady": {
-            "title": "Player ready status",
-            "type": "boolean"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "player_ready",
+  "type": "object",
+  "required": ["type", "playerId", "isReady"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "player_ready"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "isReady": {
+      "title": "Player ready status",
+      "type": "boolean"
     }
+  }
 }

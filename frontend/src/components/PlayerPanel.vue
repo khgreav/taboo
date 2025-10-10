@@ -21,13 +21,13 @@
       {{ readyButtonText }}
     </button>
     <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Red"
+      v-if="gameState === GameState.InLobby && player.team !== Team.Red && redPlayers.length < 2"
       @click="changeTeam(Team.Red)"
     >
       {{ $t('components.playerList.actions.red') }}
     </button>
     <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Blue"
+      v-if="gameState === GameState.InLobby && player.team !== Team.Blue && bluePlayers.length < 2"
       @click="changeTeam(Team.Blue)"
     >
       {{ $t('components.playerList.actions.blue') }}
