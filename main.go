@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-var addr = "localhost:8081"
+var addr = "localhost:8080"
 
 func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
