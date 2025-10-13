@@ -1,0 +1,16 @@
+[Unit]
+Description=Taboo Game Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/opt/taboo-server/taboo-server
+WorkingDirectory=/opt/taboo-server
+Restart=on-failure
+RestartSec=5
+Environment=PORT=8080
+
+[Install]
+WantedBy=multi-user.target
