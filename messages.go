@@ -8,10 +8,12 @@ const (
 	// general messages
 	ErrorResponseMsg MessageType = "error_response"
 	// player connections
-	ConnectMsg      MessageType = "connect"
-	ConnectAckMsg   MessageType = "connect_ack"
-	PlayerJoinedMsg MessageType = "player_joined"
-	PlayerLeftMsg   MessageType = "player_left"
+	ConnectMsg            MessageType = "connect"
+	ConnectAckMsg         MessageType = "connect_ack"
+	PlayerJoinedMsg       MessageType = "player_joined"
+	PlayerDisconnectedMsg MessageType = "player_disconnected"
+	PlayerReconnectedMsg  MessageType = "player_reconnected"
+	PlayerLeftMsg         MessageType = "player_left"
 	// lobby state
 	PlayerListMsg       MessageType = "player_list"
 	ChangeNameMsg       MessageType = "change_name"
@@ -66,14 +68,16 @@ type ErrorResponseMessage struct {
 
 type ConnectMessage struct {
 	TypeProperty
-	PlayerId *string `json:"playerId"`
-	Name     string  `json:"name"`
+	PlayerId     *string `json:"playerId"`
+	Name         string  `json:"name"`
+	SessionToken *string `json:"sessionToken"`
 }
 
 type ConnectAckMessage struct {
 	TypeProperty
 	PlayerIdProperty
-	Name string `json:"name"`
+	Name         string `json:"name"`
+	SessionToken string `json:"sessionToken"`
 }
 
 type ChangeNameMessage struct {
@@ -92,6 +96,16 @@ type PlayerJoinedMessage struct {
 	TypeProperty
 	PlayerIdProperty
 	Name string `json:"name"`
+}
+
+type PlayerDisconnectedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type PlayerReconnectedMessage struct {
+	TypeProperty
+	PlayerIdProperty
 }
 
 type PlayerLeftMessage struct {

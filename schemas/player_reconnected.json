@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "player_reconnected",
+  "type": "object",
+  "required": ["type", "playerId"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "player_reconnected"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

@@ -4,13 +4,18 @@
     <li
       v-for="item in players"
       :key="item.id"
-      :class="{ 'current-player': item.id === player.id }"
+      :class="{
+        'current-player': item.id === player.id,
+        'disconnected-player': !item.connected,
+      }"
     >
       {{ item.name }}
       <span
         v-if="gameState === GameState.InLobby"
-        :style="{
-          color: item.isReady ? 'green' : 'red',
+        :class="{
+          'ready-player': item.isReady,
+          'not-ready-player': !item.isReady,
+          'disconnected-player': !item.connected,
         }"
       >
         {{ $t(item.isReady ? 'components.playerList.states.ready' : 'components.playerList.states.notReady') }}

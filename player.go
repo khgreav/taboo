@@ -14,10 +14,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type PlayerInfo struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	Team    Team   `json:"team"`
-	IsReady bool   `json:"isReady"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	Team      Team   `json:"team"`
+	IsReady   bool   `json:"isReady"`
+	Connected bool   `json:"connected"`
 }
 
 type Player struct {
@@ -31,6 +32,10 @@ type Player struct {
 	isReady bool
 	// player team
 	team Team
+	// is connected
+	connected bool
+	// session token
+	sessionToken string
 }
 
 func (p *Player) SetName(name string) {
@@ -45,6 +50,32 @@ func (p *Player) SetTeam(team Team) {
 	p.team = team
 }
 
-func generatePlayerId() string {
+func (p *Player) SetConnected(connected bool) {
+	p.connected = connected
+}
+
+func generateUUID() string {
 	return uuid.NewString()
+}
+
+func (p Player) CreatePlayerJoinedMessage() *PlayerJoinedMessage {
+	return &PlayerJoinedMessage{
+		TypeProperty:     TypeProperty{Type: PlayerJoinedMsg},
+		PlayerIdProperty: PlayerIdProperty{PlayerId: p.id},
+		Name:             p.name,
+	}
+}
+
+func (p Player) CreatePlayerDisconnectedMessage() *PlayerDisconnectedMessage {
+	return &PlayerDisconnectedMessage{
+		TypeProperty:     TypeProperty{Type: PlayerDisconnectedMsg},
+		PlayerIdProperty: PlayerIdProperty{PlayerId: p.id},
+	}
+}
+
+func (p Player) CreatePlayerReconnectedMessage() *PlayerReconnectedMessage {
+	return &PlayerReconnectedMessage{
+		TypeProperty:     TypeProperty{Type: PlayerReconnectedMsg},
+		PlayerIdProperty: PlayerIdProperty{PlayerId: p.id},
+	}
 }

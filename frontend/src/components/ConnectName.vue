@@ -53,7 +53,8 @@ const sendConnect = () => {
   clientSocket.sendMessage<ConnectMessage>({
     type: MessageType.ConnectMsg,
     playerId: player.value.id,
-    name: name.value
+    name: name.value,
+    sessionToken: player.value.sessionToken,
   });
 };
 
@@ -64,6 +65,7 @@ const handleConnectAck = (message: ConnectAckMessage) => {
   }
   playerStore.setPlayerId(message.playerId);
   playerStore.setPlayerName(message.name);
+  playerStore.setPlayerSessionToken(message.sessionToken);
   playerStore.setConnected(true);
   logStore.addLogRecord(
     i18n.t('messages.connected', { name: message.name }),

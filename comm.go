@@ -88,11 +88,15 @@ func broadcastMessage(players map[string]*Player, msg MessageBase, excluded *str
 		if excluded != nil && player.id == *excluded {
 			continue
 		}
+		if !player.connected {
+			continue
+		}
 		err = player.conn.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			slog.Warn(
-				"Failed to send name changed message",
+				"Failed to send message",
 				slog.String("player_id", player.id),
+				slog.String("message_type", string(msg.GetType())),
 				slog.String("error", err.Error()),
 			)
 		}

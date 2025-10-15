@@ -14,7 +14,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "name", "team", "isReady"],
+        "required": ["id", "name", "team", "isReady", "connected"],
         "additionalProperties": false,
         "properties": {
           "id": {
@@ -34,6 +34,10 @@
           },
           "isReady": {
             "title": "Player ready status",
+            "type": "boolean"
+          },
+          "connected": {
+            "title": "Player connection status",
             "type": "boolean"
           }
         }

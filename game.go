@@ -14,6 +14,7 @@ import (
 type GameState int
 
 const RoundDuration = 60
+const ReconnectTimeout = 60
 
 const (
 	InLobby GameState = iota
@@ -28,6 +29,8 @@ type Game struct {
 	playerMtx sync.RWMutex
 	// Connected players
 	players map[string]*Player
+	// Timers for handling player connection losses
+	disconnectTimers map[string]*time.Timer
 	// Player IDs per team
 	teamPlayers map[Team][]string
 	// Team scores
@@ -52,19 +55,20 @@ type Game struct {
 
 func CreateGame() *Game {
 	return &Game{
-		gameState:      InLobby,
-		playerMtx:      sync.RWMutex{},
-		players:        make(map[string]*Player, 4),
-		teamPlayers:    make(map[Team][]string),
-		teamScores:     make(map[Team]int),
-		messages:       make(chan MessageBase),
-		wordIds:        wordStorage.GetShuffledIds(),
-		wordOffset:     0,
-		currentWordIdx: 0,
-		roundNumber:    0,
-		currentRound:   nil,
-		roundCtx:       nil,
-		roundCancel:    nil,
+		gameState:        InLobby,
+		playerMtx:        sync.RWMutex{},
+		players:          make(map[string]*Player, 4),
+		disconnectTimers: make(map[string]*time.Timer, 4),
+		teamPlayers:      make(map[Team][]string),
+		teamScores:       make(map[Team]int),
+		messages:         make(chan MessageBase),
+		wordIds:          wordStorage.GetShuffledIds(),
+		wordOffset:       0,
+		currentWordIdx:   0,
+		roundNumber:      0,
+		currentRound:     nil,
+		roundCtx:         nil,
+		roundCancel:      nil,
 	}
 }
 
@@ -83,6 +87,10 @@ func (g *Game) reset() {
 	g.currentWordIdx = 0
 	g.roundNumber = 0
 	g.currentRound = nil
+	for k := range g.disconnectTimers {
+		g.disconnectTimers[k].Stop()
+		delete(g.disconnectTimers, k)
+	}
 	for k := range g.players {
 		delete(g.players, k)
 	}
@@ -119,24 +127,47 @@ func (g *Game) run() {
 	}
 }
 
-func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) string {
+func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *string, name string) string {
 	g.playerMtx.Lock()
 
 	var player Player
+	var reconnected bool = false
 
-	if playerId == nil {
-		newId := generatePlayerId()
+	if playerId != nil && sessionToken != nil {
+		// reconnecting player
+		player, exists := g.players[*playerId]
+		if exists && player.sessionToken != *sessionToken {
+			// player ID exists, but session token does not match, reject invalid reconnection attempt
+			sendErrorMessage(player, ConnectMsg, "Invalid session token, cannot reconnect.")
+			slog.Error("Invalid reconnect attempt, session token does not match", "player_id", *playerId)
+			return player.id
+		}
+
+		// stop disconnect timer if exists
+		timer, timerExists := g.disconnectTimers[*playerId]
+		if timerExists {
+			timer.Stop()
+			delete(g.disconnectTimers, *playerId)
+			player.conn = conn
+			player.SetConnected(true)
+			reconnected = true
+			slog.Debug("Player reconnected successfully before disconnect timer expired.", "playerId", player.id)
+		}
+	}
+
+	if !reconnected {
+		newId := generateUUID()
 		// new player without ID
 		player = Player{
-			id:      newId,
-			conn:    conn,
-			name:    name,
-			isReady: false,
-			team:    -1,
+			id:           newId,
+			conn:         conn,
+			name:         name,
+			isReady:      false,
+			team:         -1,
+			connected:    true,
+			sessionToken: generateUUID(),
 		}
 		g.players[newId] = &player
-	} else {
-		return ""
 	}
 
 	// get copy of players to unlock early to not block other operations while sending messages
@@ -151,7 +182,8 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 		PlayerIdProperty: PlayerIdProperty{
 			PlayerId: player.id,
 		},
-		Name: name,
+		Name:         name,
+		SessionToken: player.sessionToken,
 	}
 	// send connect ack to the new player
 	sendUnicastMessage(&player, msg)
@@ -171,20 +203,50 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 			slog.String("error", err.Error()),
 		)
 	}
-	// create a player joined message to notify other players
-	joinedMsg := &PlayerJoinedMessage{
-		TypeProperty: TypeProperty{
-			Type: PlayerJoinedMsg,
-		},
-		PlayerIdProperty: PlayerIdProperty{
-			PlayerId: player.id,
-		},
-		Name: name,
-	}
-	// broadcast player joined message to all other players, excluding the new player
-	broadcastMessage(players, joinedMsg, &player.id)
 
+	if reconnected {
+		// create a player reconnected message to notify other players
+		reconnectedMsg := player.CreatePlayerReconnectedMessage()
+		// broadcast player reconnected message to all other players, excluding the reconnected player
+		broadcastMessage(players, reconnectedMsg, &player.id)
+	} else {
+		// create a player joined message to notify other players
+		joinedMsg := player.CreatePlayerJoinedMessage()
+		// broadcast player joined message to all other players, excluding the new player
+		broadcastMessage(players, joinedMsg, &player.id)
+	}
 	return player.id
+}
+
+func (g *Game) OnPlayerDisconnected(playerId string) {
+	g.playerMtx.Lock()
+	player, exists := g.players[playerId]
+	if !exists {
+		slog.Error("player not found", "player_id", playerId)
+		g.playerMtx.Unlock()
+		return
+	}
+	player.SetConnected(false)
+	player.SetReady(false)
+
+	// get copy of players to unlock early
+	players := g.GetPlayersCopyUnlocked()
+	timer := time.AfterFunc(ReconnectTimeout*time.Second, func() {
+		g.playerMtx.Lock()
+		_, timerExists := g.disconnectTimers[playerId]
+		if timerExists {
+			delete(g.disconnectTimers, playerId)
+		}
+		g.playerMtx.Unlock()
+		g.RemovePlayer(playerId)
+	})
+	g.disconnectTimers[playerId] = timer
+	g.playerMtx.Unlock()
+
+	// create player disconnected message
+	disconnectedMsg := player.CreatePlayerDisconnectedMessage()
+	// broadcast player player disconnected message to all other players
+	broadcastMessage(players, disconnectedMsg, &playerId)
 }
 
 func (g *Game) RemovePlayer(playerId string) {

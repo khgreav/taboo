@@ -8,6 +8,8 @@ export enum MessageType {
   ConnectMsg = 'connect',
   ConnectAckMsg = 'connect_ack',
   PlayerJoinedMsg = 'player_joined',
+  PlayerDisconnectedMsg = 'player_disconnected',
+  PlayerReconnectedMsg = 'player_reconnected',
   PlayerLeftMsg = 'player_left',
   // lobby state
   PlayerListMsg = 'player_list',
@@ -44,12 +46,14 @@ export interface ConnectMessage extends MessageBase {
   type: MessageType.ConnectMsg;
   playerId: string | null;
   name: string;
+  sessionToken: string | null;
 }
 
 export interface ConnectAckMessage extends MessageBase {
   type: MessageType.ConnectAckMsg;
   playerId: string;
   name: string;
+  sessionToken: string;
 }
 
 export interface ChangeNameMessage extends MessageBase {
@@ -64,15 +68,25 @@ export interface NameChangedMessage extends MessageBase {
   name: string;
 }
 
-export interface PlayerLeftMessage extends MessageBase {
-  type: MessageType.PlayerLeftMsg;
-  playerId: string;
-}
-
 export interface PlayerJoinedMessage extends MessageBase {
   type: MessageType.PlayerJoinedMsg;
   playerId: string;
   name: string;
+}
+
+export interface PlayerDisconnectedMessage extends MessageBase {
+  type: MessageType.PlayerLeftMsg;
+  playerId: string;
+}
+
+export interface PlayerReconnectedMessage extends MessageBase {
+  type: MessageType.PlayerLeftMsg;
+  playerId: string;
+}
+
+export interface PlayerLeftMessage extends MessageBase {
+  type: MessageType.PlayerLeftMsg;
+  playerId: string;
 }
 
 export interface PlayerListMessage extends MessageBase {
