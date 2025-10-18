@@ -64,18 +64,8 @@ input:invalid {
   border: 1px solid black;
 }
 
+
+
 .current-player {
   font-weight: bold;
-}
-
-.ready-player {
-  color: green;
-}
-
-.not-ready-player {
-  color: red;
-}
-
-.disconnected-player {
-  opacity: 0.5;
 }

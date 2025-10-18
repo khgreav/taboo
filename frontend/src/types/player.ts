@@ -12,10 +12,8 @@ interface PlayerBase {
 
 export interface Player extends PlayerBase {
   id: string | null;
-  sessionToken: string | null;
 }
 
 export interface OtherPlayer extends PlayerBase {
   id: string;
-  connected: boolean;
 }

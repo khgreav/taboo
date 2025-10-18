@@ -26,7 +26,7 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 
 		defer func() {
 			if playerId != "" {
-				game.OnPlayerDisconnected(playerId)
+				game.RemovePlayer(playerId)
 			}
 			slog.Info("Client disconnected.", "playerId", playerId)
 			conn.Close()
@@ -52,7 +52,7 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					slog.Error("Failed to cast message to ConnectMessage")
 					continue
 				}
-				playerId = game.AddPlayer(conn, conMsg.PlayerId, conMsg.SessionToken, conMsg.Name)
+				playerId = game.AddPlayer(conn, conMsg.PlayerId, conMsg.Name)
 				slog.Debug("Player ID stored", "playerId", playerId)
 				continue
 			} else {

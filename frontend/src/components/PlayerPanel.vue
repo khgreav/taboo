@@ -48,7 +48,6 @@ import { useSocketStore } from '@/stores/socketStore';
 import {
   GameState,
   MessageType,
-  type PlayerDisconnectedMessage,
   type PlayerJoinedMessage,
   type PlayerLeftMessage,
   type PlayerListMessage,
@@ -76,17 +75,11 @@ clientSocket.$onAction(({ name, after }) => {
     after((message) => {
       if (!message) return;
       switch (message.type) {
-        case MessageType.PlayerListMsg:
-          handlePlayerList(message as PlayerListMessage);
-          break;
         case MessageType.PlayerJoinedMsg:
           handlePlayerJoined(message as PlayerJoinedMessage);
           break;
-        case MessageType.PlayerDisconnectedMsg:
-          handlePlayerDisconnected(message as PlayerDisconnectedMessage);
-          break;
-        case MessageType.PlayerReconnectedMsg:
-          handlePlayerReconnected(message as PlayerDisconnectedMessage);
+        case MessageType.PlayerListMsg:
+          handlePlayerList(message as PlayerListMessage);
           break;
         case MessageType.PlayerLeftMsg:
           handlePlayerLeft(message as PlayerLeftMessage);
@@ -105,10 +98,7 @@ clientSocket.$onAction(({ name, after }) => {
 const unassignedPlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Unassigned) {
-    players.push({
-      ...player.value,
-      connected: true} as OtherPlayer,
-    );
+    players.push(player.value as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Unassigned) {
@@ -121,10 +111,7 @@ const unassignedPlayers = computed(() => {
 const redPlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Red) {
-    players.push({
-      ...player.value,
-      connected: true} as OtherPlayer,
-    );
+    players.push(player.value as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Red) {
@@ -137,10 +124,7 @@ const redPlayers = computed(() => {
 const bluePlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Blue) {
-    players.push({
-      ...player.value,
-      connected: true} as OtherPlayer,
-    );
+    players.push(player.value as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Blue) {
@@ -194,33 +178,10 @@ const handlePlayerJoined = (message: PlayerJoinedMessage) => {
     name: message.name,
     team: Team.Unassigned,
     isReady: false,
-    connected: true,
   });
 
   logStore.addLogRecord(
     i18n.t('messages.playerJoined', { name: message.name }),
-  );
-};
-
-const handlePlayerDisconnected = (message: PlayerDisconnectedMessage) => {
-  playerStore.setPlayerConnected(message.playerId, false);
-  const playerName = playerStore.getPlayerName(message.playerId);
-  if (!playerName) {
-    return;
-  }
-  logStore.addLogRecord(
-    i18n.t('messages.playerDisconnected', { name: playerName }),
-  );
-};
-
-const handlePlayerReconnected = (message: PlayerDisconnectedMessage) => {
-  playerStore.setPlayerConnected(message.playerId, true);
-  const playerName = playerStore.getPlayerName(message.playerId);
-  if (!playerName) {
-    return;
-  }
-  logStore.addLogRecord(
-    i18n.t('messages.playerReconnected', { name: playerName }),
   );
 };
 

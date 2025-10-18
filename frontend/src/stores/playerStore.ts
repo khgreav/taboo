@@ -5,12 +5,11 @@ import { type Ref, ref } from 'vue';
 export const usePlayerStore = defineStore('playerStore', () => {
   const connected: Ref<boolean> = ref(false);
   const player: Ref<Player> = ref({
-    id: null,
-    name: '',
-    team: Team.Unassigned,
-    isReady: false,
-    sessionToken: null,
-  })
+      id: null,
+      name: '',
+      team: Team.Unassigned,
+      isReady: false,
+    })
   const playerList: Ref<OtherPlayer[]> = ref([]);
 
   function setConnected(status: boolean): void {
@@ -40,10 +39,6 @@ export const usePlayerStore = defineStore('playerStore', () => {
     player.value.isReady = isReady;
   }
 
-  function setPlayerSessionToken(token: string): void {
-    player.value.sessionToken = token;
-  }
-
   function setPlayerList(players: OtherPlayer[]): void {
     playerList.value = players.filter(p => p.id !== player.value.id);
     sortPlayerList();
@@ -52,17 +47,6 @@ export const usePlayerStore = defineStore('playerStore', () => {
   function addPlayer(player: OtherPlayer): void {
     playerList.value.push(player);
     sortPlayerList();
-  }
-
-  function setPlayerConnected(playerId: string, connected: boolean): void {
-    const idx = playerList.value.findIndex(player => player.id === playerId);
-    if (idx === -1) {
-      return;
-    }
-    playerList.value[idx].connected = connected;
-    if (!connected) {
-      playerList.value[idx].isReady = false;
-    }
   }
 
   function removePlayer(playerId: string): void {
@@ -98,7 +82,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
   }
 
   function sortPlayerList(): void {
-    playerList.value.sort((a: Player | OtherPlayer, b: Player | OtherPlayer) => {
+    playerList.value.sort((a: Player, b: Player) => {
       if (a.id === player.value.id) {
         return -1;
       }
@@ -116,8 +100,6 @@ export const usePlayerStore = defineStore('playerStore', () => {
     setPlayerName,
     setPlayerTeam,
     setPlayerReadyState,
-    setPlayerSessionToken,
-    setPlayerConnected,
     connected,
     setConnected,
     playerList,
@@ -126,8 +108,4 @@ export const usePlayerStore = defineStore('playerStore', () => {
     removePlayer,
     setPlayerReady,
   };
-}, {
-  persist: {
-    pick: ['player.id', 'player.sessionToken'],
-  },
 });

@@ -67,8 +67,6 @@
     "hintGiverSelected": "Player {name} is gives hints this round.",
     "waitingToStart": "Waiting for player {name} to start the round.",
     "roundStarted": "Player {name} started the round.",
-    "roundEnded": "Round ended.",
-    "playerReconnected": "Player {name} reconnected.",
-    "playerDisconnected": "Player {name} disconnected."
+    "roundEnded": "Round ended."
   }
 }
