@@ -12,7 +12,9 @@ require (
 require (
 	github.com/go-json-experiment/json v0.0.0-20250910080747-cc2cfa0554c3 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/kaptinlin/go-i18n v0.2.0 // indirect
 	github.com/kaptinlin/messageformat-go v0.4.6 // indirect
+	github.com/rs/cors v1.11.1 // indirect
 	golang.org/x/text v0.30.0 // indirect
 )

@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -52,10 +51,6 @@ func (p *Player) SetTeam(team Team) {
 
 func (p *Player) SetConnected(connected bool) {
 	p.connected = connected
-}
-
-func generateUUID() string {
-	return uuid.NewString()
 }
 
 func (p Player) CreatePlayerJoinedMessage() *PlayerJoinedMessage {

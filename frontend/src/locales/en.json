@@ -7,6 +7,17 @@
     "log": "Game log"
   },
   "components": {
+    "menu": {
+      "actions": {
+        "back": "Back to menu",
+        "create": "Create game",
+        "join": "Join game"
+      }
+    },
+    "join": {
+      "gameId": "Game ID",
+      "name": "Your name"
+    },
     "playerList": {
       "actions": {
         "red": "Join Red team",

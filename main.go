@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 var addr = "localhost:8080"
@@ -52,7 +55,7 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					slog.Error("Failed to cast message to ConnectMessage")
 					continue
 				}
-				playerId = game.AddPlayer(conn, conMsg.PlayerId, conMsg.SessionToken, conMsg.Name)
+				playerId = game.ConnectPlayer(conn, conMsg.PlayerId, conMsg.SessionToken, conMsg.Name)
 				slog.Debug("Player ID stored", "playerId", playerId)
 				continue
 			} else {
@@ -115,11 +118,26 @@ func main() {
 		slog.Error("Failed to initialize game systems: %w", "err", err)
 		os.Exit(1)
 	}
-	game := CreateGame()
-	go game.run() // TODO: MULTIPLE GAME ROOMS
-	http.Handle("/", http.FileServer(http.Dir("frontend/")))
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		playerConnHandler(game, w, r)
+
+	gameManager := &GameManager{
+		games:        make(map[string]*Game),
+		playerInGame: make(map[string]string),
+	}
+	gameController := &GameController{gameManager: gameManager}
+
+	r := mux.NewRouter()
+	r.HandleFunc("/api/games", gameController.CreateGame).Methods("POST")
+	r.HandleFunc("/api/games/{id}", gameController.JoinGame).Methods("POST")
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("frontend/")))
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
 	})
+	handler := c.Handler(r)
+	http.Handle("/", handler)
+
 	log.Fatal(http.ListenAndServe(addr, nil))
 }

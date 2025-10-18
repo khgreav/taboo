@@ -23,6 +23,10 @@ const (
 )
 
 type Game struct {
+	// Game ID
+	id string
+	// Lobby empty callback
+	onEmpty func(gameId string)
 	// Is the game currently running
 	gameState GameState
 	// Player mutex
@@ -55,6 +59,7 @@ type Game struct {
 
 func CreateGame() *Game {
 	return &Game{
+		id:               generateUUID(),
 		gameState:        InLobby,
 		playerMtx:        sync.RWMutex{},
 		players:          make(map[string]*Player, 4),
@@ -127,15 +132,16 @@ func (g *Game) run() {
 	}
 }
 
-func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *string, name string) string {
+func (g *Game) ConnectPlayer(conn *websocket.Conn, playerId *string, sessionToken *string, name string) string {
 	g.playerMtx.Lock()
 
-	var player Player
+	var player *Player
 	var reconnected bool = false
 
 	if playerId != nil && sessionToken != nil {
+		var exists bool
 		// reconnecting player
-		player, exists := g.players[*playerId]
+		player, exists = g.players[*playerId]
 		if exists && player.sessionToken != *sessionToken {
 			// player ID exists, but session token does not match, reject invalid reconnection attempt
 			sendErrorMessage(player, ConnectMsg, "Invalid session token, cannot reconnect.")
@@ -158,7 +164,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 	if !reconnected {
 		newId := generateUUID()
 		// new player without ID
-		player = Player{
+		player = &Player{
 			id:           newId,
 			conn:         conn,
 			name:         name,
@@ -167,7 +173,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 			connected:    true,
 			sessionToken: generateUUID(),
 		}
-		g.players[newId] = &player
+		g.players[newId] = player
 	}
 
 	// get copy of players to unlock early to not block other operations while sending messages
@@ -186,7 +192,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 		SessionToken: player.sessionToken,
 	}
 	// send connect ack to the new player
-	sendUnicastMessage(&player, msg)
+	sendUnicastMessage(player, msg)
 
 	// create a player list message to send lobby state to player
 	listMsg := &PlayerListMessage{
@@ -196,7 +202,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 		Players: g.CreatePlayerList(),
 	}
 	// send player list to the new player
-	if err := sendUnicastMessage(&player, listMsg); err != nil {
+	if err := sendUnicastMessage(player, listMsg); err != nil {
 		slog.Warn(
 			"Failed to send player list message",
 			slog.String("player_id", player.id),
@@ -667,10 +673,11 @@ func (g *Game) CreatePlayerList() []PlayerInfo {
 	playerList := make([]PlayerInfo, 0, len(players))
 	for _, p := range players {
 		playerList = append(playerList, PlayerInfo{
-			Id:      p.id,
-			Name:    p.name,
-			Team:    p.team,
-			IsReady: p.isReady,
+			Id:        p.id,
+			Name:      p.name,
+			Team:      p.team,
+			IsReady:   p.isReady,
+			Connected: p.connected,
 		})
 	}
 	return playerList
