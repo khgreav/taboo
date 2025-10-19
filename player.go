@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -14,10 +13,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type PlayerInfo struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	Team    Team   `json:"team"`
-	IsReady bool   `json:"isReady"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	Team      Team   `json:"team"`
+	IsReady   bool   `json:"isReady"`
+	Connected bool   `json:"connected"`
 }
 
 type Player struct {
@@ -25,12 +25,16 @@ type Player struct {
 	id string
 	// client websocket connection
 	conn *websocket.Conn
+	// Session token
+	sessionToken string
 	// Player name
 	name string
 	// Player ready status
 	isReady bool
 	// player team
 	team Team
+	// Player connected status
+	connected bool
 }
 
 func (p *Player) SetName(name string) {
@@ -45,6 +49,51 @@ func (p *Player) SetTeam(team Team) {
 	p.team = team
 }
 
-func generatePlayerId() string {
-	return uuid.NewString()
+func (p *Player) SetConnected(connected bool) {
+	p.connected = connected
+}
+
+func (p Player) CreatePlayerJoinedMessage() *PlayerJoinedMessage {
+	return &PlayerJoinedMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerJoinedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: p.id,
+		},
+		Name: p.name,
+	}
+}
+
+func (p Player) CreatePlayerLeftMessage() *PlayerLeftMessage {
+	return &PlayerLeftMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerLeftMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: p.id,
+		},
+	}
+}
+
+func (p Player) CreatePlayerDisconnectedMessage() *PlayerDisconnectedMessage {
+	return &PlayerDisconnectedMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerDisconnectedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: p.id,
+		},
+	}
+}
+
+func (p Player) CreatePlayerReconnectedMessage() *PlayerReconnectedMessage {
+	return &PlayerReconnectedMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerReconnectedMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: p.id,
+		},
+	}
 }

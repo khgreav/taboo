@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "connect",
   "type": "object",
-  "required": ["type", "playerId", "name"],
+  "required": ["type", "playerId", "sessionToken", "name"],
   "additionalProperties": false,
   "properties": {
     "type": {
@@ -11,6 +11,18 @@
     },
     "playerId": {
       "title": "Player ID",
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sessionToken": {
+      "title": "Session token",
       "oneOf": [
         {
           "type": "string",

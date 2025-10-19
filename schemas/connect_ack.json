@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "connect_ack",
   "type": "object",
-  "required": ["type", "playerId", "name"],
+  "required": ["type", "playerId", "sessionToken", "name"],
   "additionalProperties": false,
   "properties": {
     "type": {
@@ -11,6 +11,11 @@
     },
     "playerId": {
       "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "sessionToken": {
+      "title": "Session token",
       "type": "string",
       "format": "uuid"
     },

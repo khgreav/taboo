@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func sendUnicastMessage(player *Player, msg MessageBase) error {
+func SendUnicastMessage(player *Player, msg MessageBase) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal %s message: %w", msg.GetType(), err)
@@ -34,41 +34,99 @@ func sendUnicastMessage(player *Player, msg MessageBase) error {
 	return nil
 }
 
-func sendErrorMessage(player *Player, failedMessage MessageType, errorMessage string) error {
-	msg := &ErrorResponseMessage{
-		TypeProperty: TypeProperty{
-			Type: ErrorResponseMsg,
-		},
-		FailedType: failedMessage,
-		Error:      errorMessage,
-	}
+func SendDirectErrorMessage(conn *websocket.Conn, errorMsg ErrorResponseMessage) {
+	var err error
 
-	data, err := json.Marshal(msg)
+	data, err := json.Marshal(errorMsg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal %s message: %w", ErrorResponseMsg, err)
+		slog.Error(
+			"Failed to marshal error message",
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 
 	ss, err := GetSchemaStorage()
 	if err != nil {
-		return fmt.Errorf("failed to get schema storage: %w", err)
+		slog.Error(
+			"Failed to get schema from storage.",
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 
 	err = ss.validate(ErrorResponseMsg, data)
 	if err != nil {
-		return fmt.Errorf("failed to validate outgoing %s message: %w", ErrorResponseMsg, err)
+		slog.Error(
+			"Failed to validate outgoing error message",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, data)
+	if err != nil {
+		slog.Error(
+			"Failed to send error message.",
+			slog.String("client", conn.RemoteAddr().String()),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	slog.Debug(
+		"Outgoing unicast error message.",
+		slog.String("content", string(data)),
+	)
+}
+
+func SendErrorMessage(player *Player, errorMsg ErrorResponseMessage) {
+	var err error
+
+	data, err := json.Marshal(errorMsg)
+	if err != nil {
+		slog.Error(
+			"Failed to marshal error message",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	ss, err := GetSchemaStorage()
+	if err != nil {
+		slog.Error(
+			"Failed to get schema from storage.",
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	err = ss.validate(ErrorResponseMsg, data)
+	if err != nil {
+		slog.Error(
+			"Failed to validate outgoing error message",
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 
 	err = player.conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
-		return fmt.Errorf("failed to send message %s to player %s: %w", ErrorResponseMsg, player.id, err)
+		slog.Error(
+			"Failed to send error message.",
+			slog.String("player_id", player.id),
+			slog.String("error", err.Error()),
+		)
+		return
 	}
 
-	slog.Debug("Outgoing unicast error message.", "content", msg)
-
-	return nil
+	slog.Debug(
+		"Outgoing unicast error message.",
+		slog.String("content", string(data)),
+	)
 }
 
-func broadcastMessage(players map[string]*Player, msg MessageBase, excluded *string) error {
+func BroadcastMessage(players map[string]*Player, msg MessageBase, excluded *string) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("failed to marshal %s message: %w", msg.GetType(), err)
@@ -91,8 +149,9 @@ func broadcastMessage(players map[string]*Player, msg MessageBase, excluded *str
 		err = player.conn.WriteMessage(websocket.TextMessage, data)
 		if err != nil {
 			slog.Warn(
-				"Failed to send name changed message",
+				"Failed to send message",
 				slog.String("player_id", player.id),
+				slog.String("message_type", string(msg.GetType())),
 				slog.String("error", err.Error()),
 			)
 		}

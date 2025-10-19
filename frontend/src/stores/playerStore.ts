@@ -6,6 +6,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
   const connected: Ref<boolean> = ref(false);
   const player: Ref<Player> = ref({
       id: null,
+      sessionToken: null,
       name: '',
       team: Team.Unassigned,
       isReady: false,
@@ -18,6 +19,23 @@ export const usePlayerStore = defineStore('playerStore', () => {
 
   function setPlayerId(id: string): void {
     player.value.id = id;
+  }
+
+  function setPlayerSessionToken(sessionToken: string): void {
+    player.value.sessionToken = sessionToken;
+  }
+
+  function clearPlayerId(): void {
+    player.value.id = null;
+  }
+
+  function clearPlayerSessionToken(): void {
+    player.value.sessionToken = null;
+  }
+
+  function clearSessionData(): void {
+    clearPlayerId();
+    clearPlayerSessionToken();
   }
 
   function getPlayerName(id: string): string | null {
@@ -82,7 +100,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
   }
 
   function sortPlayerList(): void {
-    playerList.value.sort((a: Player, b: Player) => {
+    playerList.value.sort((a: OtherPlayer, b: OtherPlayer) => {
       if (a.id === player.value.id) {
         return -1;
       }
@@ -96,6 +114,10 @@ export const usePlayerStore = defineStore('playerStore', () => {
   return {
     player,
     setPlayerId,
+    clearPlayerId,
+    setPlayerSessionToken,
+    clearPlayerSessionToken,
+    clearSessionData,
     getPlayerName,
     setPlayerName,
     setPlayerTeam,
@@ -108,4 +130,10 @@ export const usePlayerStore = defineStore('playerStore', () => {
     removePlayer,
     setPlayerReady,
   };
+}, {
+  persist: [
+    {
+      pick: ["player.id", "player.sessionToken"]
+    }
+  ]
 });

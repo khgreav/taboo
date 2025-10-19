@@ -98,7 +98,10 @@ clientSocket.$onAction(({ name, after }) => {
 const unassignedPlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Unassigned) {
-    players.push(player.value as OtherPlayer);
+    players.push({
+      connected: true,
+      ...player.value,
+    } as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Unassigned) {
@@ -111,7 +114,10 @@ const unassignedPlayers = computed(() => {
 const redPlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Red) {
-    players.push(player.value as OtherPlayer);
+    players.push({
+      connected: true,
+      ...player.value,
+    } as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Red) {
@@ -124,7 +130,10 @@ const redPlayers = computed(() => {
 const bluePlayers = computed(() => {
   const players: OtherPlayer[] = [];
   if (player.value.team === Team.Blue) {
-    players.push(player.value as OtherPlayer);
+    players.push({
+      connected: true,
+      ...player.value,
+    } as OtherPlayer);
   }
   for (const player of playerList.value) {
     if (player.team === Team.Blue) {
@@ -156,7 +165,10 @@ const handleTeamChanged = (message: TeamChangedMessage) => {
     return;
   }
   logStore.addLogRecord(
-    i18n.t('messages.teamChanged', { name: playerName, team: teamToString(message.team, i18n) }),
+    i18n.t(
+      'messages.playerState.teamChanged',
+      { name: playerName, team: teamToString(message.team, i18n) },
+    ),
   );
 };
 
@@ -178,10 +190,14 @@ const handlePlayerJoined = (message: PlayerJoinedMessage) => {
     name: message.name,
     team: Team.Unassigned,
     isReady: false,
+    connected: true,
   });
 
   logStore.addLogRecord(
-    i18n.t('messages.playerJoined', { name: message.name }),
+    i18n.t(
+      'messages.connections.playerJoined',
+      { name: message.name },
+    ),
   );
 };
 
@@ -192,7 +208,10 @@ const handlePlayerLeft = (message: PlayerLeftMessage) => {
     return;
   }
   logStore.addLogRecord(
-    i18n.t('messages.playerLeft', { name: playerName }),
+    i18n.t(
+      'messages.connections.playerLeft',
+      { name: playerName },
+    ),
   );
 };
 
@@ -202,8 +221,14 @@ const handlePlayerReady = (message: PlayerReadyMessage) => {
   if (!playerName) {
     return;
   }
-  logStore.addLogRecord(
-    i18n.t(message.isReady ? 'messages.ready' : 'messages.notReady', { name: playerName }),
-  );
+  if (message.isReady) {
+    logStore.addLogRecord(
+      i18n.t('messages.playerState.ready', { name: playerName }),
+    );
+  } else {
+    logStore.addLogRecord(
+      i18n.t('messages.playerState.notReady', { name: playerName }),
+    );
+  }
 };
 </script>

@@ -13,7 +13,7 @@
           color: item.isReady ? 'green' : 'red',
         }"
       >
-        {{ $t(item.isReady ? 'components.playerList.states.ready' : 'components.playerList.states.notReady') }}
+        {{ item.isReady ? $t('components.playerList.states.ready') : $t('components.playerList.states.notReady') }}
       </span>
     </li>
   </ul>

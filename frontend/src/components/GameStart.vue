@@ -8,7 +8,7 @@
       </button>
     </span>
     <span v-else>
-      {{ $t('messages.waitingToStart', { name: playerStore.getPlayerName(hintGiverId!) }) }}
+      {{ $t('messages.round.waiting', { name: playerStore.getPlayerName(hintGiverId!) }) }}
     </span>
   </p>
 </template>

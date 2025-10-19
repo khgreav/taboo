@@ -52,7 +52,11 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					slog.Error("Failed to cast message to ConnectMessage")
 					continue
 				}
-				playerId = game.AddPlayer(conn, conMsg.PlayerId, conMsg.Name)
+				playerId, err = game.AddPlayer(conn, conMsg.PlayerId, conMsg.SessionToken, conMsg.Name)
+				if err != nil {
+					slog.Error("Failed to add player")
+					break
+				}
 				slog.Debug("Player ID stored", "playerId", playerId)
 				continue
 			} else {

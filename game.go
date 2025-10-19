@@ -19,6 +19,7 @@ const (
 	InLobby GameState = iota
 	InProgress
 	InRound
+	Ended
 )
 
 type Game struct {
@@ -68,6 +69,24 @@ func CreateGame() *Game {
 	}
 }
 
+func (g *Game) AllConnected() bool {
+	for _, player := range g.players {
+		if !player.connected {
+			return false
+		}
+	}
+	return true
+}
+
+func (g *Game) AllDisconnected() bool {
+	for _, player := range g.players {
+		if player.connected {
+			return false
+		}
+	}
+	return true
+}
+
 func (g *Game) reset() {
 	if g.roundCancel != nil {
 		g.roundCancel()
@@ -93,8 +112,6 @@ func (g *Game) run() {
 	for {
 		message := <-g.messages
 		switch message := message.(type) {
-		case *ChangeNameMessage:
-			err = g.changePlayerName(message.PlayerId, message.Name)
 		case *ChangeTeamMessage:
 			err = g.changePlayerTeam(message.PlayerId, message.Team)
 		case *PlayerReadyMessage:
@@ -119,24 +136,66 @@ func (g *Game) run() {
 	}
 }
 
-func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) string {
+func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *string, name string) (string, error) {
 	g.playerMtx.Lock()
 
-	var player Player
+	var player *Player
+	reconnected := false
 
-	if playerId == nil {
-		newId := generatePlayerId()
-		// new player without ID
-		player = Player{
-			id:      newId,
-			conn:    conn,
-			name:    name,
-			isReady: false,
-			team:    -1,
+	if len(g.players) == 4 && g.AllConnected() {
+		SendDirectErrorMessage(
+			conn,
+			*CreateErrorMessage(
+				ConnectMsg,
+				ErrGameFull,
+			),
+		)
+		g.playerMtx.Unlock()
+		return "", fmt.Errorf("player from %s cannot connect, game is full", conn.RemoteAddr().String())
+	}
+
+	if playerId != nil && sessionToken != nil {
+		var exist bool
+		player, exist = g.players[*playerId]
+		if !exist {
+			SendDirectErrorMessage(
+				conn,
+				*CreateErrorMessage(
+					ConnectMsg,
+					ErrPlayerNotFound,
+				),
+			)
+			g.playerMtx.Unlock()
+			return "", fmt.Errorf("player ID %s does not exist", *playerId)
 		}
-		g.players[newId] = &player
+		if player.sessionToken != *sessionToken {
+			g.playerMtx.Unlock()
+			return "", fmt.Errorf("returning player ID %s session token %s mismatch", *playerId, *sessionToken)
+		}
+		reconnected = true
+	} else if playerId != nil && sessionToken == nil {
+		SendDirectErrorMessage(
+			conn,
+			*CreateErrorMessage(
+				ConnectMsg,
+				ErrSessionTokenMissing,
+			),
+		)
+		g.playerMtx.Unlock()
+		return "", fmt.Errorf("returning player ID %s missing session token", *playerId)
 	} else {
-		return ""
+		newId := generateUUID()
+		// new player without ID
+		player = &Player{
+			id:           newId,
+			conn:         conn,
+			sessionToken: generateUUID(),
+			name:         name,
+			isReady:      false,
+			team:         -1,
+			connected:    false,
+		}
+		g.players[newId] = player
 	}
 
 	// get copy of players to unlock early to not block other operations while sending messages
@@ -151,10 +210,11 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 		PlayerIdProperty: PlayerIdProperty{
 			PlayerId: player.id,
 		},
-		Name: name,
+		SessionToken: player.sessionToken,
+		Name:         name,
 	}
 	// send connect ack to the new player
-	sendUnicastMessage(&player, msg)
+	SendUnicastMessage(player, msg)
 
 	// create a player list message to send lobby state to player
 	listMsg := &PlayerListMessage{
@@ -164,51 +224,62 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, name string) st
 		Players: g.CreatePlayerList(),
 	}
 	// send player list to the new player
-	if err := sendUnicastMessage(&player, listMsg); err != nil {
+	if err := SendUnicastMessage(player, listMsg); err != nil {
 		slog.Warn(
-			"Failed to send player list message",
+			"Failed to send player list message.",
 			slog.String("player_id", player.id),
 			slog.String("error", err.Error()),
 		)
 	}
-	// create a player joined message to notify other players
-	joinedMsg := &PlayerJoinedMessage{
-		TypeProperty: TypeProperty{
-			Type: PlayerJoinedMsg,
-		},
-		PlayerIdProperty: PlayerIdProperty{
-			PlayerId: player.id,
-		},
-		Name: name,
+	if !reconnected {
+		// create a player joined message to notify other players
+		joinedMsg := player.CreatePlayerJoinedMessage()
+		// broadcast player joined message to all other players, excluding the new player
+		BroadcastMessage(players, joinedMsg, &player.id)
+	} else {
+		reconnectedMsg := player.CreatePlayerReconnectedMessage()
+		BroadcastMessage(players, reconnectedMsg, &player.id)
 	}
-	// broadcast player joined message to all other players, excluding the new player
-	broadcastMessage(players, joinedMsg, &player.id)
 
-	return player.id
+	return player.id, nil
 }
 
 func (g *Game) RemovePlayer(playerId string) {
 	g.playerMtx.Lock()
 
+	disconnected := false
+
 	player, exists := g.players[playerId]
 	if !exists {
-		slog.Error("player not found", "player_id", playerId)
+		slog.Error(
+			"Player not found.",
+			slog.String("player_id", playerId),
+		)
+		return
 	}
-	// delete player from map
-	delete(g.players, playerId)
 
-	if len(g.players) == 0 {
+	if g.gameState == InLobby {
+		delete(g.players, playerId)
+	} else {
+		player.SetConnected(false)
+		player.SetReady(false)
+		disconnected = true
+	}
+
+	if g.AllDisconnected() || len(g.players) == 0 {
 		slog.Info("All players have left. Resetting the game.")
 		g.reset()
 		g.playerMtx.Unlock()
 		return
 	}
 
-	// remove player from team player list
-	for i, v := range g.teamPlayers[player.team] {
-		if v == playerId {
-			g.teamPlayers[player.team] = append(g.teamPlayers[player.team][:i], g.teamPlayers[player.team][i+1:]...)
-			break
+	// remove player from team player list if left
+	if !disconnected {
+		for i, v := range g.teamPlayers[player.team] {
+			if v == playerId {
+				g.teamPlayers[player.team] = append(g.teamPlayers[player.team][:i], g.teamPlayers[player.team][i+1:]...)
+				break
+			}
 		}
 	}
 
@@ -216,47 +287,16 @@ func (g *Game) RemovePlayer(playerId string) {
 	players := g.GetPlayersCopyUnlocked()
 	g.playerMtx.Unlock()
 
-	// create player left message
-	leftMsg := &PlayerLeftMessage{
-		TypeProperty: TypeProperty{
-			Type: PlayerLeftMsg,
-		},
-		PlayerIdProperty: PlayerIdProperty{
-			PlayerId: playerId,
-		},
+	if disconnected {
+		// create player left message
+		disconnectedMsg := player.CreatePlayerDisconnectedMessage()
+		// broadcast player left message to all other players
+		// do not need to exclude player, since connection has been closed
+		BroadcastMessage(players, disconnectedMsg, nil)
+	} else {
+		leftMsg := player.CreatePlayerLeftMessage()
+		BroadcastMessage(players, leftMsg, nil)
 	}
-	// broadcast player left message to all other players
-	broadcastMessage(players, leftMsg, nil)
-}
-
-func (g *Game) changePlayerName(playerId string, name string) error {
-	// lock before accessing players
-	g.playerMtx.Lock()
-	// find player
-	player, exists := g.players[playerId]
-	if !exists {
-		g.playerMtx.Unlock()
-		return fmt.Errorf("player with ID %s not found", playerId)
-	}
-	// change name
-	player.SetName(name)
-	// create name change message
-	msg := &NameChangedMessage{
-		TypeProperty: TypeProperty{
-			Type: NameChangedMsg,
-		},
-		PlayerIdProperty: PlayerIdProperty{
-			PlayerId: playerId,
-		},
-		Name: name,
-	}
-	// get copy of players to unlock early
-	players := g.GetPlayersCopyUnlocked()
-	// unlock before sending messages
-	g.playerMtx.Unlock()
-	// broadcast name change
-	broadcastMessage(players, msg, nil)
-	return nil
 }
 
 func (g *Game) changePlayerTeam(playerId string, team Team) error {
@@ -271,18 +311,24 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 	}
 
 	if g.gameState != InLobby {
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ChangeTeamMsg,
+				ErrGameNotInLobby,
+			),
+		)
 		return fmt.Errorf("game not in lobby state, cannot change team")
 	}
 
 	if len(g.teamPlayers[team]) >= MaxTeamMembers {
-		errMsg := &ErrorResponseMessage{
-			TypeProperty: TypeProperty{
-				Type: ErrorResponseMsg,
-			},
-			FailedType: ChangeTeamMsg,
-			Error:      "Team is full.",
-		}
-		sendUnicastMessage(player, errMsg)
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ChangeTeamMsg,
+				ErrTeamFull,
+			),
+		)
 		return nil
 	}
 
@@ -321,7 +367,7 @@ func (g *Game) changePlayerTeam(playerId string, team Team) error {
 		},
 		Team: team,
 	}
-	broadcastMessage(players, teamChangedMsg, nil)
+	BroadcastMessage(players, teamChangedMsg, nil)
 	return nil
 }
 
@@ -330,19 +376,31 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
-	if g.gameState != InLobby {
-		sendErrorMessage(g.players[playerId], ChangeTeamMsg, "Game is already running, cannot change ready status.")
-		return false, fmt.Errorf("game is already running, cannot change ready status")
-	}
-
 	// find player
 	player, exists := g.players[playerId]
 	if !exists {
 		return false, fmt.Errorf("player with ID %s not found", playerId)
 	}
 
+	if g.gameState != InLobby {
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ChangeTeamMsg,
+				ErrGameNotInLobby,
+			),
+		)
+		return false, fmt.Errorf("game is already running, cannot change ready status")
+	}
+
 	if player.team == Unassigned {
-		sendErrorMessage(player, ChangeTeamMsg, "Cannot set ready state if player has not chosen a team.")
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ChangeTeamMsg,
+				ErrPlayerNotInTeam,
+			),
+		)
 		return false, fmt.Errorf("cannot set ready state if player has not chosen a team")
 	}
 
@@ -361,7 +419,7 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 	// get copy of players to unlock early
 	players := g.GetPlayersCopyUnlocked()
 	// broadcast ready status change
-	broadcastMessage(players, msg, nil)
+	BroadcastMessage(players, msg, nil)
 	allReady := true
 	for _, p := range players {
 		if !p.isReady {
@@ -404,7 +462,7 @@ func (g *Game) prepareRound() {
 	// broadcast round prepare message
 	players := g.GetPlayersCopyUnlocked()
 	startRoundMsg := g.currentRound.CreateRoundSetupMessage()
-	err = broadcastMessage(players, startRoundMsg, nil)
+	err = BroadcastMessage(players, startRoundMsg, nil)
 	if err != nil {
 		slog.Error("Failed to broadcast round setup message", "err", err)
 		return
@@ -418,20 +476,35 @@ func (g *Game) startRound(playerId string) {
 	defer g.playerMtx.Unlock()
 
 	if g.gameState != InProgress {
-		sendErrorMessage(g.players[playerId], StartRoundMsg, "Cannot start round, game not in progress state.")
+		SendErrorMessage(
+			g.players[playerId],
+			*CreateErrorMessage(
+				StartRoundMsg,
+				ErrGameNotStarted,
+			),
+		)
 		slog.Warn("Cannot start round, game not in progress state.")
 		return
 	}
 
 	if playerId != g.currentRound.HintGiverId {
-		sendErrorMessage(g.players[playerId], StartRoundMsg, "Only the hint giver can start the round.")
-		slog.Warn("Only the hint giver can start the round.", "player_id", playerId)
+		SendErrorMessage(
+			g.players[playerId],
+			*CreateErrorMessage(
+				StartRoundMsg,
+				ErrNotHintGiver,
+			),
+		)
+		slog.Warn(
+			"Only the hint giver can start the round.",
+			slog.String("player_id", playerId),
+		)
 		return
 	}
 
 	players := g.GetPlayersCopyUnlocked()
 	roundStartedMsg := g.currentRound.CreateRoundStartedMessage()
-	err := broadcastMessage(players, roundStartedMsg, nil)
+	err := BroadcastMessage(players, roundStartedMsg, nil)
 	if err != nil {
 		slog.Error("Failed to broadcast round started message", "err", err)
 		return
@@ -464,7 +537,7 @@ func (g *Game) endRound() {
 	g.roundNumber++
 	players := g.GetPlayersCopyUnlocked()
 	endRoundMsg := g.currentRound.CreateRoundEndedMessage()
-	err := broadcastMessage(players, endRoundMsg, nil)
+	err := BroadcastMessage(players, endRoundMsg, nil)
 	if err != nil {
 		slog.Error("Failed to broadcast round ended message", "err", err)
 		return
@@ -478,15 +551,30 @@ func (g *Game) guessWord(playerId string) error {
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
-	player := g.players[playerId]
+	player, exist := g.players[playerId]
+	if !exist {
+		return fmt.Errorf("player ID %s not found", playerId)
+	}
 
 	if g.gameState != InRound {
-		sendErrorMessage(player, SkipWordMsg, "Round is not running, cannot guess word.")
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				GuessWordMsg,
+				ErrRoundNotActive,
+			),
+		)
 		return fmt.Errorf("round is not running, cannot guess word")
 	}
 
 	if g.currentRound.HintGiverId != playerId {
-		sendErrorMessage(player, SkipWordMsg, "Only the hint giver can mark a guess.")
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				GuessWordMsg,
+				ErrNotHintGiver,
+			),
+		)
 		return fmt.Errorf("only the hin giver can mark a guess")
 	}
 
@@ -504,7 +592,7 @@ func (g *Game) guessWord(playerId string) error {
 		RedScore:  g.teamScores[Red],
 		BlueScore: g.teamScores[Blue],
 	}
-	broadcastMessage(players, guessedMsg, nil)
+	BroadcastMessage(players, guessedMsg, nil)
 
 	if (g.wordOffset - g.currentWordIdx) <= 5 {
 		// pick words and broadcast to players
@@ -522,7 +610,7 @@ func (g *Game) guessWord(playerId string) error {
 			Words: words,
 		}
 
-		err = broadcastMessage(players, wordListMsg, nil)
+		err = BroadcastMessage(players, wordListMsg, nil)
 		if err != nil {
 			slog.Error("Failed to broadcast word list message", "err", err)
 			return fmt.Errorf("failed to broadcast word list message: %w", err)
@@ -537,13 +625,30 @@ func (g *Game) skipCurrentWord(playerId string) error {
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
+	player, exist := g.players[playerId]
+	if !exist {
+		return fmt.Errorf("player ID %s not found", playerId)
+	}
+
 	if g.gameState != InRound {
-		sendErrorMessage(g.players[playerId], SkipWordMsg, "Round is not running, cannot skip word.")
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				SkipWordMsg,
+				ErrRoundNotActive,
+			),
+		)
 		return fmt.Errorf("round is not running, cannot skip word")
 	}
 
 	if g.currentRound.HintGiverId != playerId {
-		sendErrorMessage(g.players[playerId], SkipWordMsg, "Only the hint giver can skip.")
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				SkipWordMsg,
+				ErrNotHintGiver,
+			),
+		)
 		return fmt.Errorf("only the hint giver can skip words")
 	}
 
@@ -557,7 +662,7 @@ func (g *Game) skipCurrentWord(playerId string) error {
 			PlayerId: playerId,
 		},
 	}
-	broadcastMessage(players, skippedMsg, nil)
+	BroadcastMessage(players, skippedMsg, nil)
 
 	if (g.wordOffset - g.currentWordIdx) <= 5 {
 		// pick words and broadcast to players
@@ -575,7 +680,7 @@ func (g *Game) skipCurrentWord(playerId string) error {
 			Words: words,
 		}
 
-		err = broadcastMessage(players, wordListMsg, nil)
+		err = BroadcastMessage(players, wordListMsg, nil)
 		if err != nil {
 			slog.Error("Failed to broadcast word list message", "err", err)
 			return fmt.Errorf("failed to broadcast word list message: %w", err)

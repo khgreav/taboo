@@ -85,36 +85,45 @@ clientSocket.$onAction(({ name, after }) => {
 const handleGameStateChanged = (message: GameStateChangedMessage) => {
   gameStore.setGameState(message.state);
 
-  let logMsg: string;
   switch (message.state) {
     case GameState.InLobby:
-      logMsg = 'messages.gameInLobby';
+      logStore.addLogRecord(i18n.t('messages.gameState.inLobby'));
       break;
     case GameState.InProgress:
-      logMsg = 'messages.gameInProgress';
+      logStore.addLogRecord(i18n.t('messages.gameState.inProgress'));
       break;
     case GameState.InRound:
-      logMsg = 'messages.gameInRound';
+      logStore.addLogRecord(i18n.t('messages.gameState.inRound'));
+      break;
+    case GameState.Ended:
+      logStore.addLogRecord(i18n.t('messages.gameState.ended'));
       break;
   }
-
-  logStore.addLogRecord(i18n.t(logMsg));
 }
 
 const handleRoundSetup = (message: RoundSetupMessage) => {
   gameStore.setGameState(GameState.InProgress);
   gameStore.setDuration(message.duration);
   logStore.addLogRecord(
-    i18n.t('messages.roundDuration', { duration: message.duration }),
+    i18n.t(
+      'messages.round.duration',
+      { duration: message.duration },
+    ),
   );
   gameStore.setCurrentTeam(message.team)
   gameStore.setHintGiverId(message.hintGiverId);
   logStore.addLogRecord(
-    i18n.t('messages.hintGiverSelected', { name: playerStore.getPlayerName(message.hintGiverId) }),
+    i18n.t(
+      'messages.round.hintGiver',
+      { name: playerStore.getPlayerName(message.hintGiverId) },
+    ),
   );
   gameStore.setGuesserId(message.guesserId);
   logStore.addLogRecord(
-    i18n.t('messages.guesserSelected', { name: playerStore.getPlayerName(message.guesserId) }),
+    i18n.t(
+      'messages.round.guesser',
+      { name: playerStore.getPlayerName(message.guesserId) },
+    ),
   );
   wordStore.addWords(message.words);
 }
@@ -122,7 +131,10 @@ const handleRoundSetup = (message: RoundSetupMessage) => {
 const handleRoundStarted = (message: RoundStartedMessage) => {
   gameStore.setGameState(GameState.InRound);
   logStore.addLogRecord(
-    i18n.t('messages.roundStarted', { name: playerStore.getPlayerName(message.playerId) }),
+    i18n.t(
+      'messages.round.started',
+      { name: playerStore.getPlayerName(message.playerId) },
+    ),
   );
   startCountdown(duration.value);
 }
@@ -136,7 +148,10 @@ const handleWordGuessed = (message: WordGuessedMessage) => {
     return;
   }
   logStore.addLogRecord(
-    i18n.t('messages.guessed', { name: playerName }),
+    i18n.t(
+      'messages.round.guessed',
+      { name: playerName },
+    ),
   );
 };
 
@@ -147,7 +162,10 @@ const handleWordSkipped = (message: WordSkippedMessage) => {
     return;
   }
   logStore.addLogRecord(
-    i18n.t('messages.skipped', { name: playerName }),
+    i18n.t(
+      'messages.round.skipped',
+      { name: playerName },
+    ),
   );
 };
 

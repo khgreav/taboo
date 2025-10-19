@@ -7,6 +7,10 @@
     "log": "Game log"
   },
   "components": {
+    "connect": {
+      "action": "Connect",
+      "name": "Player name"
+    },
     "playerList": {
       "actions": {
         "red": "Join Red team",
@@ -42,7 +46,7 @@
     },
     "wordList": {
       "actions": {
-        "guess": "Guess",
+        "guess": "Correct",
         "skip": "Skip"
       },
       "roundTime": "Round time",
@@ -51,22 +55,45 @@
     }
   },
   "messages": {
-    "gameInLobby": "Game state changed to in lobby.",
-    "gameInProgress": "Game state changed to in progress.",
-    "gameInRound": "Game state changed to in round.",
-    "connected": "You have joined the game as {name}.",
-    "playerJoined": "Player {name} joined the game.",
-    "playerLeft": "Player {name} left the game.",
-    "skipped": "Player {name} skipped the word.",
-    "guessed": "Player {name} marked word correct guess.",
-    "ready": "Player {name} is ready.",
-    "notReady": "Player {name} is not ready.",
-    "teamChanged": "Player {name} changed their team to {team}.",
-    "roundDuration": "Round duration set to {duration} seconds.",
-    "guesserSelected": "Player {name} is guesses this round.",
-    "hintGiverSelected": "Player {name} is gives hints this round.",
-    "waitingToStart": "Waiting for player {name} to start the round.",
-    "roundStarted": "Player {name} started the round.",
-    "roundEnded": "Round ended."
+    "gameState": {
+      "inLobby": "Game state changed to in lobby.",
+      "inProgress": "Game state changed to in progress.",
+      "inRound": "Game state changed to in round.",
+      "ended": "Game state changed to ended."
+    },
+    "connections": {
+      "connected": "You have joined the game as {name}.",
+      "playerJoined": "Player {name} joined the game.",
+      "playerLeft": "Player {name} left the game.",
+      "playerDisconnected": "Player {name} disconnected.",
+      "playerReconnected": "Player {name} reconnected."
+    },
+    "round": {
+      "guessed": "Player {name} marked correct guess.",
+      "skipped": "Player {name} skipped the word.",
+      "duration": "Round duration set to {duration} seconds.",
+      "guesser": "Player {name} is guessing this round.",
+      "hintGiver": "Player {name} is giving hints this round.",
+      "waiting": "Waiting for player {name} to start the round.",
+      "started": "Player {name} started the round.",
+      "ended": "Round ended."
+    },
+    "playerState": {
+      "ready": "Player {name} is ready.",
+      "notReady": "Player {name} is not ready.",
+      "teamChanged": "Player {name} changed their team to {team}."
+    },
+    "errors": {
+      "gameFull": "Game is full.",
+      "playerNotFound": "Player ID does not exist.",
+      "sessionTokenMissing": "Session token is missing.",
+      "gameNotInLobby": "Game not in lobby state.",
+      "teamFull": "Team is full.",
+      "playerNotInTeam": "Player has not selected team yet.",
+      "gameNotStarted": "Game has not started yet.",
+      "notHintGiver": "Only hint giver can start a round.",
+      "roundNotActive": "Round is not active.",
+      "general": "An unexpected error has occured."
+    }
   }
 }

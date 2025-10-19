@@ -1,23 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "change_name",
+  "$id": "player_disconnected",
   "type": "object",
-  "required": ["type", "playerId", "name"],
+  "required": ["type", "playerId"],
   "additionalProperties": false,
   "properties": {
     "type": {
       "title": "Message type",
-      "const": "change_name"
+      "const": "player_disconnected"
     },
     "playerId": {
       "title": "Player ID",
       "type": "string",
       "format": "uuid"
-    },
-    "name": {
-      "title": "Player name",
-      "type": "string",
-      "minLength": 1
     }
   }
 }

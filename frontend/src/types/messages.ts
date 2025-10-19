@@ -9,10 +9,10 @@ export enum MessageType {
   ConnectAckMsg = 'connect_ack',
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
+  PlayerDisconnectedMsg = 'player_disconnected',
+  PlayerReconnectedMsg = 'player_reconnected',
   // lobby state
   PlayerListMsg = 'player_list',
-  ChangeNameMsg = 'change_name',
-  NameChangedMsg = 'name_changed',
   ChangeTeamMsg = 'change_team',
   TeamChangedMsg = 'team_changed',
   PlayerReadyMsg = 'player_ready',
@@ -33,34 +33,32 @@ export enum MessageType {
 export enum GameState {
   InLobby = 0,
   InProgress,
-  InRound
+  InRound,
+  Ended,
 }
 
 export interface MessageBase {
   type: string;
 }
 
+export interface ErrorResponseMessage extends MessageBase {
+  type: MessageType.ErrorResponseMsg;
+  failedType: MessageType;
+  error: string;
+  errorCode: number;
+}
+
 export interface ConnectMessage extends MessageBase {
   type: MessageType.ConnectMsg;
   playerId: string | null;
+  sessionToken: string | null;
   name: string;
 }
 
 export interface ConnectAckMessage extends MessageBase {
   type: MessageType.ConnectAckMsg;
   playerId: string;
-  name: string;
-}
-
-export interface ChangeNameMessage extends MessageBase {
-  type: MessageType.ChangeNameMsg;
-  playerId: string;
-  name: string;
-}
-
-export interface NameChangedMessage extends MessageBase {
-  type: MessageType.NameChangedMsg;
-  playerId: string;
+  sessionToken: string;
   name: string;
 }
 

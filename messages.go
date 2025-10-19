@@ -8,14 +8,14 @@ const (
 	// general messages
 	ErrorResponseMsg MessageType = "error_response"
 	// player connections
-	ConnectMsg      MessageType = "connect"
-	ConnectAckMsg   MessageType = "connect_ack"
-	PlayerJoinedMsg MessageType = "player_joined"
-	PlayerLeftMsg   MessageType = "player_left"
+	ConnectMsg            MessageType = "connect"
+	ConnectAckMsg         MessageType = "connect_ack"
+	PlayerJoinedMsg       MessageType = "player_joined"
+	PlayerLeftMsg         MessageType = "player_left"
+	PlayerDisconnectedMsg MessageType = "player_disconnected"
+	PlayerReconnectedMsg  MessageType = "player_reconnected"
 	// lobby state
 	PlayerListMsg       MessageType = "player_list"
-	ChangeNameMsg       MessageType = "change_name"
-	NameChangedMsg      MessageType = "name_changed"
 	ChangeTeamMsg       MessageType = "change_team"
 	TeamChangedMsg      MessageType = "team_changed"
 	PlayerReadyMsg      MessageType = "player_ready"
@@ -62,30 +62,21 @@ type ErrorResponseMessage struct {
 	TypeProperty
 	FailedType MessageType `json:"failedType"`
 	Error      string      `json:"error"`
+	ErrorCode  ErrorCode   `json:"errorCode"`
 }
 
 type ConnectMessage struct {
 	TypeProperty
-	PlayerId *string `json:"playerId"`
-	Name     string  `json:"name"`
+	PlayerId     *string `json:"playerId"`
+	SessionToken *string `json:"sessionToken"`
+	Name         string  `json:"name"`
 }
 
 type ConnectAckMessage struct {
 	TypeProperty
 	PlayerIdProperty
-	Name string `json:"name"`
-}
-
-type ChangeNameMessage struct {
-	TypeProperty
-	PlayerIdProperty
-	Name string `json:"name"`
-}
-
-type NameChangedMessage struct {
-	TypeProperty
-	PlayerIdProperty
-	Name string `json:"name"`
+	SessionToken string `json:"sessionToken"`
+	Name         string `json:"name"`
 }
 
 type PlayerJoinedMessage struct {
@@ -95,6 +86,16 @@ type PlayerJoinedMessage struct {
 }
 
 type PlayerLeftMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type PlayerDisconnectedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type PlayerReconnectedMessage struct {
 	TypeProperty
 	PlayerIdProperty
 }
@@ -181,8 +182,6 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 	switch messageType {
 	case ConnectMsg:
 		return &ConnectMessage{}, nil
-	case ChangeNameMsg:
-		return &ChangeNameMessage{}, nil
 	case ChangeTeamMsg:
 		return &ChangeTeamMessage{}, nil
 	case PlayerReadyMsg:
