@@ -6,7 +6,7 @@
     <div v-if="gameState === GameState.InRound">
       <div>
         <h3>
-          {{ `${$t('components.wordList.roundTime')}: ${timeLeft}` }}
+          {{ `${$t('components.wordList.roundTime')}: ${remainingSeconds}` }}
         </h3>
       </div>
       <WordList v-if="player.id !== guesserId" />
@@ -49,7 +49,7 @@ const { connected } = storeToRefs(playerStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 const wordStore = useWordStore();
-const { timeLeft, startCountdown, stopCountdown } = useCountdown(60);
+const { startCountdown, stopCountdown, remainingSeconds } = useCountdown(60);
 
 clientSocket.$onAction(({ name, after }) => {
   if (name === 'onMessage') {

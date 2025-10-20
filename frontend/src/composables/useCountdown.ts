@@ -1,55 +1,59 @@
-import { ref, computed, onUnmounted } from 'vue';
+import { computed, ref } from 'vue';
 
-export function useCountdown(defaultSeconds: number = 60) {
-  const initialSeconds = ref(defaultSeconds);
-  const timeLeft = ref(defaultSeconds);
-  const isRunning = ref(false);
-  let timer: ReturnType<typeof setInterval> | null = null;
+export function useCountdown(seconds: number = 60) {
+  const updateMs = 250;
+  const remainingMs = ref(seconds * 1000);
+  const remainingSeconds = computed(() => Math.ceil(remainingMs.value / 1000));
+  let timer: number | null = null;
+  let endTime: number | null = null;
+  let pausedTime = seconds * 1000;
 
   const startCountdown = (seconds?: number) => {
-    if (typeof seconds === 'number') {
-      initialSeconds.value = seconds;
-      timeLeft.value = seconds;
+    if (timer) {
+      // already running
+      return;
     }
-    stopCountdown(); // reset timer if running
-    isRunning.value = true;
-    timer = setInterval(() => {
-      if (timeLeft.value > 0) {
-        timeLeft.value -= 1;
-      } else {
-        stopCountdown();
-      }
-    }, 1000);
-  };
+    if (seconds !== undefined) {
+      remainingMs.value = seconds * 1000;
+      pausedTime = seconds * 1000;
+    }
+    endTime = Date.now() + pausedTime;
+    updateTime();
+    timer = setInterval(updateTime, updateMs);
+  }
 
-  const resetCountdown = () => {
-    stopCountdown();
-    timeLeft.value = initialSeconds.value;
-  };
+  const updateTime = () => {
+    if (!endTime) {
+      return;
+    }
+    const now = Date.now();
+    remainingMs.value = Math.max(0, endTime - now);
+    if (remainingMs.value <= 0) {
+      stopCountdown();
+    }
+  }
 
   const stopCountdown = () => {
-    isRunning.value = false;
     if (timer) {
       clearInterval(timer);
       timer = null;
     }
-  };
+    if (endTime) {
+      pausedTime = Math.max(0, endTime - Date.now());
+    }
+    endTime = null;
+  }
 
-  onUnmounted(() => {
+  const resetCountdown = () => {
     stopCountdown();
-  });
-
-  const minutes = computed(() => Math.floor(timeLeft.value / 60));
-  const seconds = computed(() => timeLeft.value % 60);
+    remainingMs.value = seconds * 1000;
+    pausedTime = seconds * 1000;
+  }
 
   return {
-    timeLeft,
-    isRunning,
+    remainingSeconds,
     startCountdown,
     stopCountdown,
     resetCountdown,
-    minutes,
-    seconds,
-    initialSeconds,
-  };
+  }
 }
