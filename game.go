@@ -172,6 +172,8 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 			g.playerMtx.Unlock()
 			return "", fmt.Errorf("returning player ID %s session token %s mismatch", *playerId, *sessionToken)
 		}
+		player.SetConnection(conn)
+		player.SetConnected(true)
 		reconnected = true
 	} else if playerId != nil && sessionToken == nil {
 		SendDirectErrorMessage(
@@ -193,7 +195,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 			name:         name,
 			isReady:      false,
 			team:         -1,
-			connected:    false,
+			connected:    true,
 		}
 		g.players[newId] = player
 	}
@@ -255,6 +257,7 @@ func (g *Game) RemovePlayer(playerId string) {
 			"Player not found.",
 			slog.String("player_id", playerId),
 		)
+		g.playerMtx.Unlock()
 		return
 	}
 
@@ -710,10 +713,11 @@ func (g *Game) CreatePlayerList() []PlayerInfo {
 	playerList := make([]PlayerInfo, 0, len(players))
 	for _, p := range players {
 		playerList = append(playerList, PlayerInfo{
-			Id:      p.id,
-			Name:    p.name,
-			Team:    p.team,
-			IsReady: p.isReady,
+			Id:        p.id,
+			Name:      p.name,
+			Team:      p.team,
+			IsReady:   p.isReady,
+			Connected: p.connected,
 		})
 	}
 	return playerList

@@ -37,6 +37,10 @@ type Player struct {
 	connected bool
 }
 
+func (p *Player) SetConnection(conn *websocket.Conn) {
+	p.conn = conn
+}
+
 func (p *Player) SetName(name string) {
 	p.name = name
 }
