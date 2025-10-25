@@ -7,6 +7,7 @@ export enum MessageType {
   // player connections
   ConnectMsg = 'connect',
   ConnectAckMsg = 'connect_ack',
+  ReconnectAckMsg = 'reconnect_ack',
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
   PlayerDisconnectedMsg = 'player_disconnected',
@@ -22,6 +23,9 @@ export enum MessageType {
   StartRoundMsg = 'start_round',
   RoundStartedMsg = 'round_started',
   RoundEndedMsg = 'round_ended',
+  RoundPausedMsg = 'round_paused',
+  ResumeRoundMsg = 'resume_round',
+  RoundResumedMsg = 'round_resumed',
   // round actions
   SkipWordMsg = 'skip_word',
   WordSkippedMsg = 'word_skipped',
@@ -34,6 +38,7 @@ export enum GameState {
   InLobby = 0,
   InProgress,
   InRound,
+  RoundPaused,
   Ended,
 }
 
@@ -62,8 +67,31 @@ export interface ConnectAckMessage extends MessageBase {
   name: string;
 }
 
+export interface ReconnectAckMessage extends Omit<ConnectAckMessage, 'type'> {
+  type: MessageType.ReconnectAckMsg;
+  team: Team.Red | Team.Blue;
+  state: GameState.InProgress | GameState.InRound | GameState.RoundPaused;
+  remainingDuration: number;
+  currentTeam: Team.Red | Team.Blue;
+  guesserId: string;
+  hintGiverId: string;
+  redScore: number;
+  blueScore: number;
+  words: Word[]
+}
+
 export interface PlayerLeftMessage extends MessageBase {
   type: MessageType.PlayerLeftMsg;
+  playerId: string;
+}
+
+export interface PlayerDisconnectedMessage extends MessageBase {
+  type: MessageType.PlayerDisconnectedMsg;
+  playerId: string;
+}
+
+export interface PlayerReconnectedMessage extends MessageBase {
+  type: MessageType.PlayerReconnectedMsg;
   playerId: string;
 }
 
@@ -137,12 +165,27 @@ export interface RoundSetupMessage extends MessageBase {
   words: Word[];
 }
 
+export interface RoundStartedMessage extends MessageBase {
+  type: MessageType.RoundStartedMsg;
+  playerId: string;
+}
+
 export interface StartRoundMessage extends MessageBase {
   type: MessageType.StartRoundMsg;
   playerId: string;
 }
 
-export interface RoundStartedMessage extends MessageBase {
-  type: MessageType.RoundStartedMsg;
+export interface RoundPausedMessage extends MessageBase {
+  type: MessageType.RoundPausedMsg;
+  remainingDuration: number;
+}
+
+export interface ResumeRoundMessage extends MessageBase {
+  type: MessageType.ResumeRoundMsg;
+  playerId: string;
+}
+
+export interface RoundResumedMessage extends MessageBase {
+  type: MessageType.RoundResumedMsg;
   playerId: string;
 }

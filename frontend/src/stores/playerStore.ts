@@ -99,6 +99,14 @@ export const usePlayerStore = defineStore('playerStore', () => {
     item.isReady = isReady;
   }
 
+  function setPlayerConnected(playerId: string, connected: boolean): void {
+    const item = playerList.value.find(player => player.id === playerId);
+    if (!item) {
+      return;
+    }
+    item.connected = connected;
+  }
+
   function sortPlayerList(): void {
     playerList.value.sort((a: OtherPlayer, b: OtherPlayer) => {
       if (a.id === player.value.id) {
@@ -124,6 +132,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
     setPlayerReadyState,
     connected,
     setConnected,
+    setPlayerConnected,
     playerList,
     setPlayerList,
     addPlayer,

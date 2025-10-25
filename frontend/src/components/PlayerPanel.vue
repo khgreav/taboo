@@ -48,10 +48,12 @@ import { useSocketStore } from '@/stores/socketStore';
 import {
   GameState,
   MessageType,
+  type PlayerDisconnectedMessage,
   type PlayerJoinedMessage,
   type PlayerLeftMessage,
   type PlayerListMessage,
   type PlayerReadyMessage,
+  type PlayerReconnectedMessage,
   type TeamChangedMessage,
 } from '@/types/messages';
 import { Team, type OtherPlayer } from '@/types/player';
@@ -83,6 +85,12 @@ clientSocket.$onAction(({ name, after }) => {
           break;
         case MessageType.PlayerLeftMsg:
           handlePlayerLeft(message as PlayerLeftMessage);
+          break;
+        case MessageType.PlayerDisconnectedMsg:
+          handlePlayerDisconnected(message as PlayerDisconnectedMessage);
+          break;
+        case MessageType.PlayerReconnectedMsg:
+          handlePlayerReconnected(message as PlayerReconnectedMessage);
           break;
         case MessageType.TeamChangedMsg:
           handleTeamChanged(message as TeamChangedMessage);
@@ -202,8 +210,8 @@ const handlePlayerJoined = (message: PlayerJoinedMessage) => {
 };
 
 const handlePlayerLeft = (message: PlayerLeftMessage) => {
-  playerStore.removePlayer(message.playerId);
   const playerName = playerStore.getPlayerName(message.playerId);
+  playerStore.removePlayer(message.playerId);
   if (!playerName) {
     return;
   }
@@ -231,4 +239,32 @@ const handlePlayerReady = (message: PlayerReadyMessage) => {
     );
   }
 };
+
+const handlePlayerDisconnected = (message: PlayerDisconnectedMessage) => {
+  playerStore.setPlayerConnected(message.playerId, false);
+  const playerName = playerStore.getPlayerName(message.playerId);
+  if (!playerName) {
+    return;
+  }
+  logStore.addLogRecord(
+    i18n.t(
+      'messages.connections.playerDisconnected',
+      { name: playerName }
+    )
+  );
+}
+
+const handlePlayerReconnected = (message: PlayerReconnectedMessage) => {
+  playerStore.setPlayerConnected(message.playerId, true);
+  const playerName = playerStore.getPlayerName(message.playerId);
+  if (!playerName) {
+    return;
+  }
+  logStore.addLogRecord(
+    i18n.t(
+      'messages.connections.playerReconnected',
+      { name: playerName }
+    )
+  );
+}
 </script>

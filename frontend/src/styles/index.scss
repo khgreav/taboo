@@ -64,8 +64,10 @@ input:invalid {
   border: 1px solid black;
 }
 
-
-
 .current-player {
   font-weight: bold;
+}
+
+.disconnected-player {
+  opacity: 50%;
 }

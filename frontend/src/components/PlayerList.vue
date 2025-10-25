@@ -4,7 +4,10 @@
     <li
       v-for="item in players"
       :key="item.id"
-      :class="{ 'current-player': item.id === player.id }"
+      :class="{
+        'current-player': item.id === player.id,
+        'disconnected-player': !item.connected,
+      }"
     >
       {{ item.name }}
       <span

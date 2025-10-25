@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reconnect_ack",
+  "type": "object",
+  "required": [
+    "type",
+    "playerId",
+    "sessionToken",
+    "name",
+    "team",
+    "state",
+    "remainingDuration",
+    "currentTeam",
+    "guesserId",
+    "hintGiverId",
+    "redScore",
+    "blueScore",
+    "words"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "reconnect_ack"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "sessionToken": {
+      "title": "Session token",
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "title": "Player name",
+      "type": "string",
+      "minLength": 1
+    },
+    "team": {
+      "title": "Player team",
+      "type": "integer",
+      "enum": [0, 1]
+    },
+    "state": {
+      "title": "Game state",
+      "type": "integer",
+      "enum": [1, 2, 3]
+    },
+    "remainingDuration": {
+      "title": "Remaining round duration",
+      "type": "integer"
+    },
+    "currentTeam": {
+      "title": "Current playing team",
+      "type": "integer",
+      "enum": [0, 1]
+    },
+    "guesserId": {
+      "title": "Guesser Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "hintGiverId": {
+      "title": "Hint Giver Player ID",
+      "type": "string",
+      "format": "uuid"
+    },
+    "redScore": {
+      "title": "Red Team Score",
+      "type": "integer",
+      "minimum": 0
+    },
+    "blueScore": {
+      "title": "Blue Team Score",
+      "type": "integer",
+      "minimum": 0
+    },
+    "words": {
+      "title": "List of random words",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "word", "taboo"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Word ID",
+            "type": "integer",
+            "minimum": 1
+          },
+          "word": {
+            "title": "Guessed word",
+            "type": "string",
+            "minLength": 1
+          },
+          "taboo": {
+            "title": "Taboo words",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 5,
+            "maxItems": 5,
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

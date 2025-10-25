@@ -129,16 +129,30 @@ func SendErrorMessage(player *Player, errorMsg ErrorResponseMessage) {
 func BroadcastMessage(players map[string]*Player, msg MessageBase, excluded *string) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
+		slog.Error(
+			"Failed to marshal message.",
+			slog.String("messageType", string(msg.GetType())),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to marshal %s message: %w", msg.GetType(), err)
 	}
 
 	ss, err := GetSchemaStorage()
 	if err != nil {
+		slog.Error(
+			"Failed to get schema from storage.",
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to get schema storage: %w", err)
 	}
 
 	err = ss.validate(msg.GetType(), data)
 	if err != nil {
+		slog.Error(
+			"Failed to validate outgoing message.",
+			slog.String("messageType", string(msg.GetType())),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to validate outgoing %s message: %w", msg.GetType(), err)
 	}
 

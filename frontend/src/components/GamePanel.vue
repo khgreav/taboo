@@ -1,15 +1,38 @@
 <template>
   <div class="centered centered-column">
-    <ConnectName v-if="!connected" />
+    <ConnectName
+      v-if="!connected"
+      @update-duration='adjustRemaining(duration)'
+    />
     <RoleBanner v-if="gameState !== GameState.InLobby" />
     <GameStart v-if="gameState === GameState.InProgress" />
-    <div v-if="gameState === GameState.InRound">
+    <div v-if="[GameState.InRound, GameState.RoundPaused].includes(gameState)">
       <div>
         <h3>
           {{ `${$t('components.wordList.roundTime')}: ${remainingSeconds}` }}
         </h3>
       </div>
       <WordList v-if="player.id !== guesserId" />
+      <div v-if="player.id === hintGiverId">
+        <button
+          :disabled="currentWordIndex === words.length - 1"
+          @click="guessWord()"
+          >
+          {{ $t('components.controls.guess') }}
+        </button>
+        <button
+          :disabled="currentWordIndex === words.length - 1"
+          @click="skipWord()"
+          >
+          {{ $t('components.controls.skip') }}
+        </button>
+        <button
+          v-if='gameState === GameState.RoundPaused'
+          @click='resumeRound()'
+        >
+          {{ $t('components.controls.resume') }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -33,6 +56,9 @@ import {
   MessageType,
   type GameStateChangedMessage,
   type MessageBase,
+  type ResumeRoundMessage,
+  type RoundPausedMessage,
+  type RoundResumedMessage,
   type RoundSetupMessage,
   type RoundStartedMessage,
   type WordGuessedMessage,
@@ -42,14 +68,14 @@ import {
 
 const i18n = useI18n();
 const gameStore = useGameStore();
-const { gameState, guesserId, duration } = storeToRefs(gameStore);
+const { gameState, guesserId, hintGiverId, duration } = storeToRefs(gameStore);
 const playerStore = usePlayerStore();
-const { player } = storeToRefs(playerStore);
-const { connected } = storeToRefs(playerStore);
+const { player, connected } = storeToRefs(playerStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 const wordStore = useWordStore();
-const { startCountdown, stopCountdown, remainingSeconds } = useCountdown(60);
+const { currentWordIndex, words } = storeToRefs(wordStore);
+const { startCountdown, stopCountdown, adjustRemaining, remainingSeconds } = useCountdown(60);
 
 clientSocket.$onAction(({ name, after }) => {
   if (name === 'onMessage') {
@@ -76,6 +102,12 @@ clientSocket.$onAction(({ name, after }) => {
           break;
         case MessageType.RoundEndedMsg:
           handleRoundEnded();
+          break;
+        case MessageType.RoundPausedMsg:
+          handleRoundPaused(message as RoundPausedMessage);
+          break;
+        case MessageType.RoundResumedMsg:
+          handleRoundResumed(message as RoundResumedMessage);
           break;
       }
     });
@@ -139,6 +171,13 @@ const handleRoundStarted = (message: RoundStartedMessage) => {
   startCountdown(duration.value);
 }
 
+const guessWord = () => {
+  clientSocket.sendMessage({
+    type: MessageType.GuessWordMsg,
+    playerId: player.value.id,
+  });
+}
+
 const handleWordGuessed = (message: WordGuessedMessage) => {
   gameStore.setRedScore(message.redScore);
   gameStore.setBlueScore(message.blueScore);
@@ -154,6 +193,13 @@ const handleWordGuessed = (message: WordGuessedMessage) => {
     ),
   );
 };
+
+const skipWord = () => {
+  clientSocket.sendMessage({
+    type: MessageType.SkipWordMsg,
+    playerId: player.value.id,
+  });
+}
 
 const handleWordSkipped = (message: WordSkippedMessage) => {
   wordStore.advanceWord();
@@ -176,5 +222,39 @@ const handleWordList = (message: WordListMessage) => {
 const handleRoundEnded = () => {
   gameStore.setGameState(GameState.InProgress);
   stopCountdown();
+  logStore.addLogRecord(
+    i18n.t('messages.round.ended'),
+  );
+}
+
+const handleRoundPaused = (message: RoundPausedMessage) => {
+  gameStore.setGameState(GameState.RoundPaused);
+  stopCountdown();
+  adjustRemaining(message.remainingDuration);
+  logStore.addLogRecord(
+    i18n.t('messages.round.paused'),
+  );
+}
+
+const resumeRound = () => {
+  clientSocket.sendMessage({
+    type: MessageType.ResumeRoundMsg,
+    playerId: player.value.id,
+  } as ResumeRoundMessage);
+}
+
+const handleRoundResumed = (message: RoundResumedMessage) => {
+  gameStore.setGameState(GameState.InRound);
+  startCountdown(remainingSeconds.value);
+  const playerName = playerStore.getPlayerName(message.playerId);
+  if (!playerName) {
+    return;
+  }
+  logStore.addLogRecord(
+    i18n.t(
+      'messages.round.resumed',
+      { name: playerName },
+    ),
+  );
 }
 </script>

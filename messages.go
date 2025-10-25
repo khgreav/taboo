@@ -10,6 +10,7 @@ const (
 	// player connections
 	ConnectMsg            MessageType = "connect"
 	ConnectAckMsg         MessageType = "connect_ack"
+	ReconnectAckMsg       MessageType = "reconnect_ack"
 	PlayerJoinedMsg       MessageType = "player_joined"
 	PlayerLeftMsg         MessageType = "player_left"
 	PlayerDisconnectedMsg MessageType = "player_disconnected"
@@ -25,6 +26,10 @@ const (
 	StartRoundMsg   MessageType = "start_round"
 	RoundStartedMsg MessageType = "round_started"
 	RoundEndedMsg   MessageType = "round_ended"
+	PauseRoundMsg   MessageType = "pause_round"
+	RoundPausedMsg  MessageType = "round_paused"
+	ResumeRoundMsg  MessageType = "resume_round"
+	RoundResumedMsg MessageType = "round_resumed"
 	// round actions
 	SkipWordMsg    MessageType = "skip_word"
 	WordSkippedMsg MessageType = "word_skipped"
@@ -77,6 +82,19 @@ type ConnectAckMessage struct {
 	PlayerIdProperty
 	SessionToken string `json:"sessionToken"`
 	Name         string `json:"name"`
+}
+
+type ReconnectAckMessage struct {
+	ConnectAckMessage
+	Team              Team         `json:"team"`
+	State             GameState    `json:"state"`
+	RemainingDuration int          `json:"remainingDuration"`
+	CurrentTeam       Team         `json:"currentTeam"`
+	GuesserId         string       `json:"guesserId"`
+	HintGiverId       string       `json:"hintGiverId"`
+	RedScore          int          `json:"redScore"`
+	BlueScore         int          `json:"blueScore"`
+	Words             []*TabooWord `json:"words"`
 }
 
 type PlayerJoinedMessage struct {
@@ -178,6 +196,21 @@ type RoundEndedMessage struct {
 	TypeProperty
 }
 
+type RoundPausedMessage struct {
+	TypeProperty
+	RemainingDuration int `json:"remainingDuration"`
+}
+
+type ResumeRoundMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type RoundResumedMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
 func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 	switch messageType {
 	case ConnectMsg:
@@ -192,6 +225,8 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 		return &SkipWordMessage{}, nil
 	case GuessWordMsg:
 		return &GuessWordMessage{}, nil
+	case ResumeRoundMsg:
+		return &ResumeRoundMessage{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported message type: %s", messageType)
 	}

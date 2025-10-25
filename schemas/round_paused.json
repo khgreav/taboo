@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "round_paused",
+  "type": "object",
+  "required": ["type", "remainingDuration"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "round_paused"
+    },
+    "remainingDuration": {
+      "title": "Round duration in seconds",
+      "type": "integer"
+    }
+  }
+}

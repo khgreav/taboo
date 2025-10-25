@@ -16,9 +16,11 @@
 </template>
 
 <script setup lang="ts">
+import { useGameStore } from '@/stores/gameStore';
 import { useLogStore } from '@/stores/logStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useSocketStore } from '@/stores/socketStore';
+import { useWordStore } from '@/stores/wordStore';
 import { ErrCodes } from '@/types/errors';
 import {
   type ConnectAckMessage,
@@ -26,15 +28,21 @@ import {
   type ErrorResponseMessage,
   type MessageBase,
   MessageType,
+  type ReconnectAckMessage,
 } from '@/types/messages';
 import { storeToRefs } from 'pinia';
 import { ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue3-toastify';
 
+const emit = defineEmits<{
+  updateDuration: [];
+}>();
 const i18n = useI18n();
+const gameStore = useGameStore();
 const playerStore = usePlayerStore();
 const { player } = storeToRefs(playerStore);
+const wordStore = useWordStore();
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 
@@ -47,6 +55,9 @@ clientSocket.$onAction(({ name, after }) => {
       switch (message.type) {
         case MessageType.ConnectAckMsg:
           handleConnectAck(message as ConnectAckMessage);
+          break;
+        case MessageType.ReconnectAckMsg:
+          handleReconnectAck(message as ReconnectAckMessage);
           break;
         case MessageType.ErrorResponseMsg:
           if ((message as ErrorResponseMessage).failedType === MessageType.ConnectMsg) {
@@ -67,10 +78,6 @@ const sendConnect = () => {
 };
 
 const handleConnectAck = (message: ConnectAckMessage) => {
-  if (player.value.id === message.playerId) {
-    console.info('Connect ID matches, acknowledged.');
-    return;
-  }
   playerStore.setPlayerId(message.playerId);
   playerStore.setPlayerSessionToken(message.sessionToken);
   playerStore.setPlayerName(message.name);
@@ -93,5 +100,28 @@ const handleConnectError = (message: ErrorResponseMessage) => {
         i18n.t('messages.errors.general')
       );
   }
+}
+
+const handleReconnectAck = (message: ReconnectAckMessage) => {
+  // set player team and name
+  playerStore.setPlayerTeam(message.playerId, message.team);
+  playerStore.setPlayerName(message.name);
+  // set current team and player roles
+  gameStore.setCurrentTeam(message.currentTeam);
+  gameStore.setHintGiverId(message.hintGiverId);
+  gameStore.setGuesserId(message.guesserId);
+  // set scores
+  gameStore.setRedScore(message.redScore);
+  gameStore.setBlueScore(message.blueScore);
+  // set remaining duration and words to guess
+  gameStore.setDuration(message.remainingDuration);
+  emit('updateDuration');
+  wordStore.addWords(message.words);
+  // finally, set game state and player connected state to update UI
+  gameStore.setGameState(message.state);
+  playerStore.setConnected(true);
+  logStore.addLogRecord(
+    i18n.t('messages.connections.reconnected', { name: message.name }),
+  );
 }
 </script>

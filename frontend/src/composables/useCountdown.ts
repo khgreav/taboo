@@ -50,10 +50,16 @@ export function useCountdown(seconds: number = 60) {
     pausedTime = seconds * 1000;
   }
 
+  const adjustRemaining = (seconds: number) => {
+    remainingMs.value = seconds * 1000;
+    pausedTime = seconds * 1000;
+  }
+
   return {
     remainingSeconds,
     startCountdown,
     stopCountdown,
     resetCountdown,
+    adjustRemaining,
   }
 }

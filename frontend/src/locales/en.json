@@ -11,6 +11,12 @@
       "action": "Connect",
       "name": "Player name"
     },
+    "controls": {
+      "guess": "Correct",
+      "skip": "Skip",
+      "pause": "Pause",
+      "resume": "Resume"
+    },
     "playerList": {
       "actions": {
         "red": "Join Red team",
@@ -45,10 +51,6 @@
       }
     },
     "wordList": {
-      "actions": {
-        "guess": "Correct",
-        "skip": "Skip"
-      },
       "roundTime": "Round time",
       "currentWord": "Word to guess",
       "tabooWords": "Taboo words"
@@ -63,6 +65,7 @@
     },
     "connections": {
       "connected": "You have joined the game as {name}.",
+      "reconnected": "You have reconnected to the game as {name}.",
       "playerJoined": "Player {name} joined the game.",
       "playerLeft": "Player {name} left the game.",
       "playerDisconnected": "Player {name} disconnected.",
@@ -76,7 +79,9 @@
       "hintGiver": "Player {name} is giving hints this round.",
       "waiting": "Waiting for player {name} to start the round.",
       "started": "Player {name} started the round.",
-      "ended": "Round ended."
+      "ended": "Round ended.",
+      "paused": "Round paused due to player disconnecting.",
+      "resumed": "Player {name} resumed the round."
     },
     "playerState": {
       "ready": "Player {name} is ready.",
