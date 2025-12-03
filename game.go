@@ -14,6 +14,7 @@ import (
 type GameState int
 
 const RoundDuration = 60
+const BatchSize = 10
 
 const (
 	InLobby GameState = iota
@@ -38,9 +39,11 @@ type Game struct {
 	messages chan MessageBase
 	// IDs of words to be used in game
 	wordIds []uint
-	// Index of the start of next batch
-	wordOffset uint
-	// Index of the currently guessed word
+	// Number of total batched words
+	batchedWordCount uint
+	// Current words
+	wordQueue []uint
+	// Index of the currently guessed word (into word queue)
 	currentWordIdx uint
 	// Current round number
 	roundNumber uint
@@ -54,19 +57,20 @@ type Game struct {
 
 func CreateGame() *Game {
 	return &Game{
-		gameState:      InLobby,
-		playerMtx:      sync.RWMutex{},
-		players:        make(map[string]*Player, 4),
-		teamPlayers:    make(map[Team][]string),
-		teamScores:     make(map[Team]int),
-		messages:       make(chan MessageBase),
-		wordIds:        wordStorage.GetShuffledIds(),
-		wordOffset:     0,
-		currentWordIdx: 0,
-		roundNumber:    0,
-		currentRound:   nil,
-		roundCtx:       nil,
-		roundCancel:    nil,
+		gameState:        InLobby,
+		playerMtx:        sync.RWMutex{},
+		players:          make(map[string]*Player, 4),
+		teamPlayers:      make(map[Team][]string),
+		teamScores:       make(map[Team]int),
+		messages:         make(chan MessageBase),
+		wordIds:          wordStorage.GetShuffledIds(),
+		batchedWordCount: 0,
+		wordQueue:        []uint{},
+		currentWordIdx:   0,
+		roundNumber:      0,
+		currentRound:     nil,
+		roundCtx:         nil,
+		roundCancel:      nil,
 	}
 }
 
@@ -103,7 +107,8 @@ func (g *Game) reset() {
 	g.teamScores[Red] = 0
 	g.teamScores[Blue] = 0
 	g.wordIds = wordStorage.GetShuffledIds()
-	g.wordOffset = 0
+	g.batchedWordCount = 0
+	g.wordQueue = []uint{}
 	g.currentWordIdx = 0
 	g.roundNumber = 0
 	g.currentRound = nil
@@ -231,11 +236,7 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 	} else {
 		player.SetConnection(conn)
 		player.SetConnected(true)
-		words, err := wordStorage.GetWordsByIds(g.wordIds[g.currentWordIdx:g.wordOffset])
-		if err != nil {
-			slog.Error("Failed to get remaining words in batch for reconnecting player", "err", err)
-			return "", fmt.Errorf("failed to get remaining words in batch for reconnecting player: %w", err)
-		}
+		words := g.PreparePendingWordBatch()
 
 		// create a reconnect message for returning player
 		reconnectMsg := ReconnectAckMessage{
@@ -503,20 +504,15 @@ func (g *Game) prepareRound() {
 	g.playerMtx.Lock()
 	defer g.playerMtx.Unlock()
 
-	// pick words and broadcast to players
-	words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
-	if err != nil {
-		// TODO: handle this situation better, game can start, but words are nowhere to be found
-		slog.Error("Failed to get words for round", "err", err)
-		return
-	}
-	g.wordOffset += 10
 	// select team and players for round
 	team := selectTeam(g.roundNumber)
 	if len(g.teamPlayers[team]) < 2 {
 		slog.Error("Not enough players to start the round")
 		return
 	}
+
+	// pick words and broadcast to players
+	words := g.PrepareNextWordBatch()
 
 	hintGiverId, guesserId := g.selectTeamPlayers(team, g.roundNumber)
 	// create round object
@@ -531,7 +527,7 @@ func (g *Game) prepareRound() {
 	// broadcast round prepare message
 	players := g.GetPlayersCopyUnlocked()
 	roundSetupMsg := g.currentRound.CreateRoundSetupMessage()
-	err = BroadcastMessage(players, roundSetupMsg, nil)
+	err := BroadcastMessage(players, roundSetupMsg, nil)
 	if err != nil {
 		slog.Error("Failed to broadcast round setup message", "err", err)
 		return
@@ -733,14 +729,10 @@ func (g *Game) guessWord(playerId string) error {
 	}
 	BroadcastMessage(players, guessedMsg, nil)
 
-	if (g.wordOffset - g.currentWordIdx) <= 5 {
+	remaining := len(g.wordQueue) - int(g.currentWordIdx)
+	if remaining <= 5 {
 		// pick words and broadcast to players
-		words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
-		if err != nil {
-			slog.Error("Failed to get new batch of words", "err", err)
-			return fmt.Errorf("failed to get new batch of words: %w", err)
-		}
-		g.wordOffset += 10
+		words := g.PrepareNextWordBatch()
 
 		wordListMsg := &WordListMessage{
 			TypeProperty: TypeProperty{
@@ -749,7 +741,7 @@ func (g *Game) guessWord(playerId string) error {
 			Words: words,
 		}
 
-		err = BroadcastMessage(players, wordListMsg, nil)
+		err := BroadcastMessage(players, wordListMsg, nil)
 		if err != nil {
 			slog.Error("Failed to broadcast word list message", "err", err)
 			return fmt.Errorf("failed to broadcast word list message: %w", err)
@@ -803,14 +795,10 @@ func (g *Game) skipCurrentWord(playerId string) error {
 	}
 	BroadcastMessage(players, skippedMsg, nil)
 
-	if (g.wordOffset - g.currentWordIdx) <= 5 {
+	remaining := len(g.wordQueue) - int(g.currentWordIdx)
+	if remaining <= 5 {
 		// pick words and broadcast to players
-		words, err := wordStorage.GetWordsByIds(g.wordIds[g.wordOffset : g.wordOffset+10])
-		if err != nil {
-			slog.Error("Failed to get new batch of words", "err", err)
-			return fmt.Errorf("failed to get new batch of words: %w", err)
-		}
-		g.wordOffset += 10
+		words := g.PrepareNextWordBatch()
 
 		wordListMsg := &WordListMessage{
 			TypeProperty: TypeProperty{
@@ -819,7 +807,7 @@ func (g *Game) skipCurrentWord(playerId string) error {
 			Words: words,
 		}
 
-		err = BroadcastMessage(players, wordListMsg, nil)
+		err := BroadcastMessage(players, wordListMsg, nil)
 		if err != nil {
 			slog.Error("Failed to broadcast word list message", "err", err)
 			return fmt.Errorf("failed to broadcast word list message: %w", err)
@@ -842,6 +830,47 @@ func (g *Game) selectTeamPlayers(team Team, round uint) (string, string) {
 		return g.teamPlayers[team][0], g.teamPlayers[team][1]
 	}
 	return g.teamPlayers[team][1], g.teamPlayers[team][0]
+}
+
+func (g *Game) PrepareNextWordBatch() []*TabooWord {
+	maxWords := wordStorage.GetWordCount()
+
+	// slice away guessed or skipped words
+	if g.currentWordIdx > 0 {
+		processed := g.currentWordIdx
+		if int(processed) >= len(g.wordQueue) {
+			g.wordQueue = g.wordQueue[:0]
+		} else {
+			g.wordQueue = append([]uint(nil), g.wordQueue[processed:]...)
+		}
+		g.currentWordIdx = 0
+	}
+
+	need := BatchSize - len(g.wordQueue)
+	if need <= 0 {
+		return []*TabooWord{}
+	}
+
+	newIDs := make([]uint, 0, need)
+	for range need {
+		pos := g.batchedWordCount % maxWords
+		newIDs = append(newIDs, g.wordIds[pos])
+		g.batchedWordCount++
+
+		if pos+1 == maxWords {
+			g.wordIds = wordStorage.GetShuffledIds()
+		}
+	}
+
+	g.wordQueue = append(g.wordQueue, newIDs...)
+	return wordStorage.GetWordsByIds(newIDs)
+}
+
+func (g *Game) PreparePendingWordBatch() []*TabooWord {
+	if int(g.currentWordIdx) >= len(g.wordQueue) {
+		return []*TabooWord{}
+	}
+	return wordStorage.GetWordsByIds(g.wordQueue[g.currentWordIdx:])
 }
 
 func (g *Game) CreatePlayerList() []PlayerInfo {

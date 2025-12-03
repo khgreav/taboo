@@ -48,7 +48,7 @@ func (ws *WordStorage) GetShuffledIds() []uint {
 	return ids
 }
 
-func (ws *WordStorage) GetWordsByIds(ids []uint) ([]*TabooWord, error) {
+func (ws *WordStorage) GetWordsByIds(ids []uint) []*TabooWord {
 	words := make([]*TabooWord, 0, len(ids))
 	for _, id := range ids {
 		word, ok := ws.words[id]
@@ -57,7 +57,7 @@ func (ws *WordStorage) GetWordsByIds(ids []uint) ([]*TabooWord, error) {
 		}
 		words = append(words, word)
 	}
-	return words, nil
+	return words
 }
 
 func (ws *WordStorage) loadWords(file string) error {
@@ -77,4 +77,8 @@ func (ws *WordStorage) loadWords(file string) error {
 	}
 
 	return nil
+}
+
+func (ws WordStorage) GetWordCount() uint {
+	return uint(len(ws.words))
 }
