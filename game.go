@@ -15,6 +15,7 @@ type GameState int
 
 const RoundDuration = 60
 const BatchSize = 10
+const MaxRounds = 4
 
 const (
 	InLobby GameState = iota
@@ -99,7 +100,7 @@ func (g *Game) CancelEndRoundTimer() {
 	}
 }
 
-func (g *Game) reset() {
+func (g *Game) reset(withPlayers bool) {
 	g.CancelEndRoundTimer()
 	g.gameState = InLobby
 	g.teamPlayers[Red] = []string{}
@@ -112,8 +113,15 @@ func (g *Game) reset() {
 	g.currentWordIdx = 0
 	g.roundNumber = 0
 	g.currentRound = nil
-	for k := range g.players {
-		delete(g.players, k)
+	if withPlayers {
+		for k := range g.players {
+			delete(g.players, k)
+		}
+	} else {
+		for _, player := range g.players {
+			player.SetReady(false)
+			player.SetTeam(Unassigned)
+		}
 	}
 }
 
@@ -138,6 +146,8 @@ func (g *Game) run() {
 			err = g.guessWord(message.PlayerId)
 		case *ResumeRoundMessage:
 			g.resumeRound(message.PlayerId)
+		case *ResetGameMessage:
+			g.resetToLobby(message.PlayerId)
 		default:
 			slog.Warn("Unknown message type", "type", message.GetType())
 		}
@@ -324,7 +334,7 @@ func (g *Game) RemovePlayer(playerId string) {
 
 	if g.AllDisconnected() || len(g.players) == 0 {
 		slog.Info("All players have left. Resetting the game.")
-		g.reset()
+		g.reset(true)
 		g.playerMtx.Unlock()
 		return
 	}
@@ -456,7 +466,7 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
-				ChangeTeamMsg,
+				PlayerReadyMsg,
 				ErrGameNotInLobby,
 			),
 		)
@@ -467,7 +477,7 @@ func (g *Game) changePlayerReadyStatus(playerId string, isReady bool) (bool, err
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
-				ChangeTeamMsg,
+				PlayerReadyMsg,
 				ErrPlayerNotInTeam,
 			),
 		)
@@ -606,7 +616,7 @@ func (g *Game) resumeRound(playerId string) {
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
-				PauseRoundMsg,
+				ResumeRoundMsg,
 				ErrRoundNotPaused,
 			),
 		)
@@ -621,7 +631,7 @@ func (g *Game) resumeRound(playerId string) {
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
-				GuessWordMsg,
+				ResumeRoundMsg,
 				ErrNotHintGiver,
 			),
 		)
@@ -668,17 +678,89 @@ func (g *Game) endRound() {
 		return
 	}
 
-	g.gameState = InProgress
-	g.roundNumber++
 	players := g.GetPlayersCopyUnlocked()
-	endRoundMsg := g.currentRound.CreateRoundEndedMessage()
-	err := BroadcastMessage(players, endRoundMsg, nil)
-	if err != nil {
-		slog.Error("Failed to broadcast round ended message", "err", err)
+	if g.roundNumber < MaxRounds-1 {
+		g.gameState = InProgress
+		g.roundNumber++
+		endRoundMsg := g.currentRound.CreateRoundEndedMessage()
+		err := BroadcastMessage(players, endRoundMsg, nil)
+		if err != nil {
+			slog.Error("Failed to broadcast round ended message", "err", err)
+			return
+		}
+		g.playerMtx.Unlock()
+		g.prepareRound()
+	} else {
+		g.gameState = Ended
+		endGameMsg := g.CreateGameEndedMessage()
+		err := BroadcastMessage(players, endGameMsg, nil)
+		if err != nil {
+			slog.Error("Failed to broadcast game ended message", "err", err)
+			return
+		}
+		g.playerMtx.Unlock()
+	}
+}
+
+func (g *Game) resetToLobby(playerId string) {
+	g.playerMtx.Lock()
+	defer g.playerMtx.Unlock()
+
+	player, exist := g.players[playerId]
+	if !exist {
+		slog.Error(
+			"Player not found",
+			slog.String("playerId", playerId),
+		)
 		return
 	}
-	g.playerMtx.Unlock()
-	g.prepareRound()
+
+	if g.gameState != Ended {
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ResetGameMsg,
+				ErrGameNotEnded,
+			),
+		)
+		slog.Error(
+			"Game has not ended yet, cannot reset to lobby.",
+			slog.Int("gameState", int(g.gameState)),
+		)
+		return
+	}
+
+	if g.currentRound.HintGiverId != playerId {
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ResetGameMsg,
+				ErrNotHintGiver,
+			),
+		)
+		slog.Error(
+			"Only the hint giver can reset the game.",
+			slog.String("playerId", playerId),
+			slog.String("hintGiverId", g.currentRound.HintGiverId),
+		)
+		return
+	}
+
+	players := g.GetPlayersCopyUnlocked()
+	g.gameState = InLobby
+	resetMsg := &GameResetMessage{
+		TypeProperty: TypeProperty{
+			Type: GameResetMsg,
+		},
+		Players: g.CreatePlayerList(),
+	}
+	err := BroadcastMessage(players, resetMsg, nil)
+	if err != nil {
+		slog.Error(
+			"Failed to broadcast round paused message",
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 func (g *Game) guessWord(playerId string) error {
@@ -898,4 +980,14 @@ func (g *Game) GetPlayersCopyUnlocked() map[string]*Player {
 	playersCopy := make(map[string]*Player, len(g.players))
 	maps.Copy(playersCopy, g.players)
 	return playersCopy
+}
+
+func (g *Game) CreateGameEndedMessage() *GameEndedMessage {
+	return &GameEndedMessage{
+		TypeProperty: TypeProperty{
+			Type: GameEndedMsg,
+		},
+		RedScore:  g.teamScores[Red],
+		BlueScore: g.teamScores[Blue],
+	}
 }

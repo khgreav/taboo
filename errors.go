@@ -13,6 +13,7 @@ const (
 	ErrNotHintGiver
 	ErrRoundNotActive
 	ErrRoundNotPaused
+	ErrGameNotEnded
 )
 
 func GetErrMessage(code ErrorCode) string {
@@ -37,6 +38,8 @@ func GetErrMessage(code ErrorCode) string {
 		return "Round is not active."
 	case ErrRoundNotPaused:
 		return "Round is not paused."
+	case ErrGameNotEnded:
+		return "Game has not ended yet."
 	default:
 		return "Unknown error."
 	}

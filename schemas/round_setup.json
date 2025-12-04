@@ -27,7 +27,7 @@
     "duration": {
       "title": "Round duration in seconds",
       "type": "integer",
-      "minimum": 60
+      "minimum": 10
     },
     "words": {
       "title": "List of random words",

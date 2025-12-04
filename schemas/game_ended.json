@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "game_ended",
+  "type": "object",
+  "required": ["type"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "game_ended"
+    },
+    "redScore": {
+      "type": "integer",
+      "title": "Red team score"
+    },
+    "blueScore": {
+      "type": "integer",
+      "title": "Blue team score"
+    }
+  }
+}

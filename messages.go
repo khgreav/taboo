@@ -30,6 +30,9 @@ const (
 	RoundPausedMsg  MessageType = "round_paused"
 	ResumeRoundMsg  MessageType = "resume_round"
 	RoundResumedMsg MessageType = "round_resumed"
+	GameEndedMsg    MessageType = "game_ended"
+	ResetGameMsg    MessageType = "reset_game"
+	GameResetMsg    MessageType = "game_reset"
 	// round actions
 	SkipWordMsg    MessageType = "skip_word"
 	WordSkippedMsg MessageType = "word_skipped"
@@ -211,6 +214,22 @@ type RoundResumedMessage struct {
 	PlayerIdProperty
 }
 
+type GameEndedMessage struct {
+	TypeProperty
+	RedScore  int `json:"redScore"`
+	BlueScore int `json:"blueScore"`
+}
+
+type ResetGameMessage struct {
+	TypeProperty
+	PlayerIdProperty
+}
+
+type GameResetMessage struct {
+	TypeProperty
+	Players []PlayerInfo `json:"players"`
+}
+
 func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 	switch messageType {
 	case ConnectMsg:
@@ -227,6 +246,8 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 		return &GuessWordMessage{}, nil
 	case ResumeRoundMsg:
 		return &ResumeRoundMessage{}, nil
+	case ResetGameMsg:
+		return &ResetGameMessage{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported message type: %s", messageType)
 	}

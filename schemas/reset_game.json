@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "reset_game",
+  "type": "object",
+  "required": ["type"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "title": "Message type",
+      "const": "reset_game"
+    },
+    "playerId": {
+      "title": "Player ID",
+      "type": "string"
+    }
+  }
+}
