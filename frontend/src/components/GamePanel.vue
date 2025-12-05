@@ -4,7 +4,7 @@
       v-if="!connected"
       @update-duration='adjustRemaining(duration)'
     />
-    <RoleBanner v-if="gameState !== GameState.InLobby" />
+    <RoleBanner v-if="gameState !== GameState.InLobby && gameState !== GameState.Ended" />
     <GameStart v-if="gameState === GameState.InProgress" />
     <div v-if="[GameState.InRound, GameState.RoundPaused].includes(gameState)">
       <div>
@@ -15,13 +15,13 @@
       <WordList v-if="player.id !== guesserId" />
       <div v-if="player.id === hintGiverId">
         <button
-          :disabled="currentWordIndex === words.length - 1"
+          :disabled="currentWordIndex === words.length - 1 || gameState === GameState.RoundPaused"
           @click="guessWord()"
           >
           {{ $t('components.controls.guess') }}
         </button>
         <button
-          :disabled="currentWordIndex === words.length - 1"
+          :disabled="currentWordIndex === words.length - 1 || gameState === GameState.RoundPaused"
           @click="skipWord()"
           >
           {{ $t('components.controls.skip') }}
@@ -33,6 +33,24 @@
           {{ $t('components.controls.resume') }}
         </button>
       </div>
+    </div>
+    <div v-else-if="gameState == GameState.Ended">
+      <h3>{{ $t('components.gameOver.title') }}</h3>
+      <h3 v-if="winner === null">
+        {{ $t('components.gameOver.tied', { score: redScore }) }}
+      </h3>
+      <h3 v-else-if="winner === player.team">
+        {{ $t('components.gameOver.winner', { winner: myTeamScore, loser: opposingTeamScore }) }}
+      </h3>
+      <h3 v-else>
+        {{ $t('components.gameOver.loser', { loser: myTeamScore, winner: opposingTeamScore }) }}
+      </h3>
+      <button
+        v-if="player.id === hintGiverId"
+        @click='resetGame()'
+      >
+        {{ $t('components.controls.reset') }}
+      </button>
     </div>
   </div>
 </template>
@@ -54,6 +72,7 @@ import { useWordStore } from '@/stores/wordStore';
 import {
   GameState,
   MessageType,
+  type GameEndedMsg,
   type GameStateChangedMessage,
   type MessageBase,
   type ResumeRoundMessage,
@@ -65,10 +84,12 @@ import {
   type WordListMessage,
   type WordSkippedMessage,
 } from '@/types/messages';
+import { computed } from 'vue';
+import { Team } from '@/types/player';
 
 const i18n = useI18n();
 const gameStore = useGameStore();
-const { gameState, guesserId, hintGiverId, duration } = storeToRefs(gameStore);
+const { gameState, guesserId, hintGiverId, duration, winner, redScore, blueScore } = storeToRefs(gameStore);
 const playerStore = usePlayerStore();
 const { player, connected } = storeToRefs(playerStore);
 const logStore = useLogStore();
@@ -76,6 +97,20 @@ const clientSocket = useSocketStore();
 const wordStore = useWordStore();
 const { currentWordIndex, words } = storeToRefs(wordStore);
 const { startCountdown, stopCountdown, adjustRemaining, remainingSeconds } = useCountdown(60);
+const myTeamScore = computed(() => {
+  if (player.value.team === Team.Red) {
+    return redScore.value;
+  } else {
+    return blueScore.value;
+  }
+})
+const opposingTeamScore = computed(() => {
+  if (player.value.team === Team.Red) {
+    return blueScore.value;
+  } else {
+    return redScore.value;
+  }
+})
 
 clientSocket.$onAction(({ name, after }) => {
   if (name === 'onMessage') {
@@ -108,6 +143,12 @@ clientSocket.$onAction(({ name, after }) => {
           break;
         case MessageType.RoundResumedMsg:
           handleRoundResumed(message as RoundResumedMessage);
+          break;
+        case MessageType.GameEndedMsg:
+          handleGameEnded(message as GameEndedMsg);
+          break;
+        case MessageType.GameResetMsg:
+          handleGameReset();
           break;
       }
     });
@@ -257,4 +298,31 @@ const handleRoundResumed = (message: RoundResumedMessage) => {
     ),
   );
 }
+
+const handleGameEnded = (message: GameEndedMsg) => {
+  gameStore.setGameState(GameState.Ended);
+  gameStore.setRedScore(message.redScore);
+  gameStore.setBlueScore(message.blueScore);
+  stopCountdown();
+  logStore.addLogRecord(
+    i18n.t('messages.gameState.ended'),
+  );
+}
+
+const resetGame = () => {
+  clientSocket.sendMessage({
+    type: MessageType.ResetGameMsg,
+    playerId: player.value.id,
+  });
+};
+
+const handleGameReset = () => {
+  gameStore.resetGame();
+  wordStore.clearWords();
+  playerStore.resetPlayerTeams();
+  logStore.addLogRecord(
+    i18n.t('messages.gameState.inLobby'),
+  );
+}
+
 </script>

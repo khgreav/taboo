@@ -1,7 +1,7 @@
 import { GameState } from '@/types/messages';
-import type { Team } from '@/types/player';
+import { Team } from '@/types/player';
 import { defineStore } from 'pinia';
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 
 export const useGameStore = defineStore('game', () => {
   const gameState: Ref<GameState> = ref(GameState.InLobby);
@@ -11,6 +11,15 @@ export const useGameStore = defineStore('game', () => {
   const guesserId: Ref<string | null> = ref(null);
   const hintGiverId: Ref<string | null> = ref(null);
   const duration: Ref<number> = ref(60);
+  const winner = computed(() => {
+    if (redScore.value > blueScore.value) {
+      return Team.Red;
+    } else if (blueScore.value > redScore.value) {
+      return Team.Blue;
+    } else {
+      return null;
+    }
+  });
 
   function setGameState(state: GameState): void {
     gameState.value = state;
@@ -40,6 +49,16 @@ export const useGameStore = defineStore('game', () => {
     duration.value = seconds;
   }
 
+  function resetGame(): void {
+    gameState.value = GameState.InLobby;
+    redScore.value = 0;
+    blueScore.value = 0;
+    currentTeam.value = null;
+    guesserId.value = null;
+    hintGiverId.value = null;
+    duration.value = 60;
+  }
+
   return {
     gameState,
     setGameState,
@@ -55,5 +74,7 @@ export const useGameStore = defineStore('game', () => {
     setHintGiverId,
     duration,
     setDuration,
+    winner,
+    resetGame,
   };
 });

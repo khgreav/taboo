@@ -227,7 +227,6 @@ type ResetGameMessage struct {
 
 type GameResetMessage struct {
 	TypeProperty
-	Players []PlayerInfo `json:"players"`
 }
 
 func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {

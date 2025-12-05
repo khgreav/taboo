@@ -26,6 +26,9 @@ export enum MessageType {
   RoundPausedMsg = 'round_paused',
   ResumeRoundMsg = 'resume_round',
   RoundResumedMsg = 'round_resumed',
+  GameEndedMsg = 'game_ended',
+  ResetGameMsg = 'reset_game',
+  GameResetMsg = 'game_reset',
   // round actions
   SkipWordMsg = 'skip_word',
   WordSkippedMsg = 'word_skipped',
@@ -188,4 +191,19 @@ export interface ResumeRoundMessage extends MessageBase {
 export interface RoundResumedMessage extends MessageBase {
   type: MessageType.RoundResumedMsg;
   playerId: string;
+}
+
+export interface GameEndedMsg extends MessageBase {
+  type: MessageType.GameEndedMsg;
+  redScore: number;
+  blueScore: number;
+}
+
+export interface ResetGameMessage extends MessageBase {
+  type: MessageType.ResetGameMsg;
+  playerId: string;
+}
+
+export interface GameResetMessage extends MessageBase {
+  type: MessageType.GameResetMsg;
 }

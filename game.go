@@ -643,6 +643,21 @@ func (g *Game) resumeRound(playerId string) {
 		return
 	}
 
+	if !g.AllConnected() {
+		SendErrorMessage(
+			player,
+			*CreateErrorMessage(
+				ResumeRoundMsg,
+				ErrNotAllConnected,
+			),
+		)
+		slog.Error(
+			"Not all players are connected, cannot resume round.",
+			slog.String("playerId", playerId),
+		)
+		return
+	}
+
 	players := g.GetPlayersCopyUnlocked()
 	g.gameState = InRound
 	g.currentRound.StartTime = time.Now().UnixMilli()
@@ -747,12 +762,11 @@ func (g *Game) resetToLobby(playerId string) {
 	}
 
 	players := g.GetPlayersCopyUnlocked()
-	g.gameState = InLobby
+	g.reset(false)
 	resetMsg := &GameResetMessage{
 		TypeProperty: TypeProperty{
 			Type: GameResetMsg,
 		},
-		Players: g.CreatePlayerList(),
 	}
 	err := BroadcastMessage(players, resetMsg, nil)
 	if err != nil {

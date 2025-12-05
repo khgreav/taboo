@@ -2,46 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "game_reset",
   "type": "object",
-  "required": ["type", "players"],
+  "required": ["type"],
   "additionalProperties": false,
   "properties": {
     "type": {
       "title": "Message type",
       "const": "game_reset"
-    },
-    "players": {
-      "title": "List of players",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "name", "team", "isReady", "connected"],
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "title": "Player ID",
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "title": "Player name",
-            "type": "string",
-            "minLength": 1
-          },
-          "team": {
-            "title": "Team",
-            "type": "integer",
-            "enum": [-1, 0, 1]
-          },
-          "isReady": {
-            "title": "Player ready status",
-            "type": "boolean"
-          },
-          "connected": {
-            "title": "Player connected",
-            "type": "boolean"
-          }
-        }
-      }
     }
   }
 }

@@ -11,6 +11,7 @@ const (
 	ErrPlayerNotInTeam
 	ErrGameNotStarted
 	ErrNotHintGiver
+	ErrNotAllConnected
 	ErrRoundNotActive
 	ErrRoundNotPaused
 	ErrGameNotEnded
@@ -34,6 +35,8 @@ func GetErrMessage(code ErrorCode) string {
 		return "Game has not started yet."
 	case ErrNotHintGiver:
 		return "Only hint giver can start a round."
+	case ErrNotAllConnected:
+		return "Not all players are connected."
 	case ErrRoundNotActive:
 		return "Round is not active."
 	case ErrRoundNotPaused:

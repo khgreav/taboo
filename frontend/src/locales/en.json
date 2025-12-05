@@ -15,7 +15,14 @@
       "guess": "Correct",
       "skip": "Skip",
       "pause": "Pause",
-      "resume": "Resume"
+      "resume": "Resume",
+      "reset": "Reset to lobby"
+    },
+    "gameOver": {
+      "title": "Game Over",
+      "winner": "Your team won with a score of {winner}-{loser}!",
+      "loser": "Your team lost with a score of {loser}-{winner}!",
+      "tied": "The game ended in a tie with a score of {score}-{score}."
     },
     "playerList": {
       "actions": {

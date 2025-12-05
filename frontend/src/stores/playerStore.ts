@@ -107,6 +107,15 @@ export const usePlayerStore = defineStore('playerStore', () => {
     item.connected = connected;
   }
 
+  function resetPlayerTeams(): void {
+    player.value.team = Team.Unassigned;
+    player.value.isReady = false;
+    playerList.value.forEach((p: OtherPlayer) => {
+      p.team = Team.Unassigned;
+      p.isReady = false;
+    });
+  }
+
   function sortPlayerList(): void {
     playerList.value.sort((a: OtherPlayer, b: OtherPlayer) => {
       if (a.id === player.value.id) {
@@ -138,6 +147,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
     addPlayer,
     removePlayer,
     setPlayerReady,
+    resetPlayerTeams,
   };
 }, {
   persist: [

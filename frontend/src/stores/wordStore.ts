@@ -16,10 +16,16 @@ export const useWordStore = defineStore('wordStore', () => {
     }
   }
 
+  function clearWords(): void {
+    words.value = [];
+    currentWordIndex.value = 0;
+  }
+
   return {
     words,
     addWords,
     currentWordIndex,
     advanceWord,
+    clearWords,
   }
 });
