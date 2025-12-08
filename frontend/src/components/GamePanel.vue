@@ -1,6 +1,6 @@
 <template>
   <div class="centered centered-column">
-    <ConnectName
+    <ConnectPanel
       v-if="!connected"
       @update-duration='adjustRemaining(duration)'
     />
@@ -59,7 +59,7 @@
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 
-import ConnectName from '@/components/ConnectName.vue';
+import ConnectPanel from '@/components/ConnectPanel.vue';
 import TabooCard from '@/components/TabooCard.vue';
 import GameStart from '@/components/GameStart.vue';
 import RoleBanner from '@/components/RoleBanner.vue';

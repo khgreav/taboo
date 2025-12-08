@@ -22,9 +22,15 @@ import PlayerPanel from '@/components/PlayerPanel.vue';
 import { usePlayerStore } from '@/stores/playerStore';
 
 import { storeToRefs } from 'pinia';
+import { onBeforeMount } from 'vue';
 
 const playerStore = usePlayerStore();
-const { connected } = storeToRefs(playerStore);
+const { connected, player } = storeToRefs(playerStore);
 
+onBeforeMount(() => {
+  if (player.value.id === null || player.value.sessionToken === null) {
+    playerStore.clearSessionData();
+  }
+});
 
 </script>

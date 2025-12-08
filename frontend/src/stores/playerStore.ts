@@ -5,12 +5,12 @@ import { type Ref, ref } from 'vue';
 export const usePlayerStore = defineStore('playerStore', () => {
   const connected: Ref<boolean> = ref(false);
   const player: Ref<Player> = ref({
-      id: null,
-      sessionToken: null,
-      name: '',
-      team: Team.Unassigned,
-      isReady: false,
-    })
+    id: null,
+    sessionToken: null,
+    name: '',
+    team: Team.Unassigned,
+    isReady: false,
+  })
   const playerList: Ref<OtherPlayer[]> = ref([]);
 
   function setConnected(status: boolean): void {
@@ -33,9 +33,14 @@ export const usePlayerStore = defineStore('playerStore', () => {
     player.value.sessionToken = null;
   }
 
+  function clearPlayerName(): void {
+    player.value.name = '';
+  }
+
   function clearSessionData(): void {
     clearPlayerId();
     clearPlayerSessionToken();
+    clearPlayerName();
   }
 
   function getPlayerName(id: string): string | null {
@@ -152,7 +157,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
 }, {
   persist: [
     {
-      pick: ["player.id", "player.sessionToken"]
-    }
-  ]
+      pick: ["player.id", "player.sessionToken", "player.name"],
+    },
+  ],
 });

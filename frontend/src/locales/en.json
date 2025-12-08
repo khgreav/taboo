@@ -8,8 +8,12 @@
   },
   "components": {
     "connect": {
-      "action": "Connect",
-      "name": "Player name"
+      "actions": {
+        "connect": "Connect",
+        "reconnect": "Reconnect"
+      },
+      "name": "Player name",
+      "reconnectMessage": "You were disconnected from an active game. Click reconnect to rejoin the game."
     },
     "controls": {
       "guess": "Correct",

@@ -1,16 +1,32 @@
 <template>
   <div class="centered-div">
-    <form @submit.prevent="sendConnect()">
-      <label for="nameInput">{{ $t('components.connect.name') }}</label>
-      <input
-        v-model="name"
-        ref="nameInput"
-        type="text"
-        required
-      />
-      <button type="submit">
-        {{ $t('components.connect.action')}}
+    <form
+      v-if="player.id !== null && player.sessionToken !== null"
+      @submit.prevent='reconnect()'
+    >
+    <fieldset >
+      <span>{{ $t('components.connect.reconnectMessage') }}</span><br><br>
+      <button type='submit'>
+        {{ $t('components.connect.actions.reconnect')}}
       </button>
+    </fieldset>
+    </form>
+    <form
+      v-else
+      @submit.prevent='connect()'
+    >
+      <fieldset>
+        <label for="nameInput">{{ $t('components.connect.name') }}</label>
+        <input
+          ref="nameInput"
+          v-model="name"
+          type="text"
+          required
+        /><br><br>
+        <button type='submit'>
+          {{ $t('components.connect.actions.connect')}}
+        </button>
+      </fieldset>
     </form>
   </div>
 </template>
@@ -68,14 +84,23 @@ clientSocket.$onAction(({ name, after }) => {
   }
 });
 
-const sendConnect = () => {
+const connect = () => {
+  clientSocket.sendMessage<ConnectMessage>({
+    type: MessageType.ConnectMsg,
+    playerId: null,
+    sessionToken: null,
+    name: name.value
+  });
+};
+
+const reconnect = () => {
   clientSocket.sendMessage<ConnectMessage>({
     type: MessageType.ConnectMsg,
     playerId: player.value.id,
     sessionToken: player.value.sessionToken,
-    name: name.value
+    name: player.value.name,
   });
-};
+}
 
 const handleConnectAck = (message: ConnectAckMessage) => {
   playerStore.setPlayerId(message.playerId);
