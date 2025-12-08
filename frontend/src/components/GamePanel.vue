@@ -9,19 +9,19 @@
     <div v-if="[GameState.InRound, GameState.RoundPaused].includes(gameState)">
       <div>
         <h3>
-          {{ `${$t('components.wordList.roundTime')}: ${remainingSeconds}` }}
+          {{ `${$t('components.roundTime')}: ${remainingSeconds}` }}
         </h3>
       </div>
-      <WordList v-if="player.id !== guesserId" />
+      <TabooCard v-if="player.id !== guesserId" />
       <div v-if="player.id === hintGiverId">
         <button
-          :disabled="currentWordIndex === words.length - 1 || gameState === GameState.RoundPaused"
+          :disabled="words.length === 1 || gameState === GameState.RoundPaused"
           @click="guessWord()"
           >
           {{ $t('components.controls.guess') }}
         </button>
         <button
-          :disabled="currentWordIndex === words.length - 1 || gameState === GameState.RoundPaused"
+          :disabled="words.length === 1 || gameState === GameState.RoundPaused"
           @click="skipWord()"
           >
           {{ $t('components.controls.skip') }}
@@ -60,7 +60,7 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 
 import ConnectName from '@/components/ConnectName.vue';
-import WordList from '@/components/WordList.vue';
+import TabooCard from '@/components/TabooCard.vue';
 import GameStart from '@/components/GameStart.vue';
 import RoleBanner from '@/components/RoleBanner.vue';
 import { useCountdown } from '@/composables/useCountdown';
@@ -95,7 +95,7 @@ const { player, connected } = storeToRefs(playerStore);
 const logStore = useLogStore();
 const clientSocket = useSocketStore();
 const wordStore = useWordStore();
-const { currentWordIndex, words } = storeToRefs(wordStore);
+const { words } = storeToRefs(wordStore);
 const { startCountdown, stopCountdown, adjustRemaining, remainingSeconds } = useCountdown(60);
 const myTeamScore = computed(() => {
   if (player.value.team === Team.Red) {

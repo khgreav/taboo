@@ -1,30 +1,32 @@
 import type { Word } from '@/types/words';
+import Denque from 'denque';
 import { defineStore } from 'pinia';
-import { ref, type Ref } from 'vue';
+import { computed, ref, type ComputedRef, type Ref } from 'vue';
 
 export const useWordStore = defineStore('wordStore', () => {
-  const words: Ref<Word[]> = ref([]);
-  const currentWordIndex: Ref<number> = ref(0);
+  const words: Ref<Denque<Word>> = ref(new Denque<Word>());
+  const currentWord: ComputedRef<Word | null> = computed(() => {
+    return words.value.peekFront() || null;
+  });
 
   function addWords(newWords: Word[]): void {
-    words.value = words.value.concat(newWords);
-  }
-
-  function advanceWord(): void {
-    if (currentWordIndex.value < words.value.length - 1) {
-      currentWordIndex.value += 1;
+    for (const word of newWords) {
+      words.value.push(word);
     }
   }
 
+  function advanceWord(): void {
+    words.value.shift()
+  }
+
   function clearWords(): void {
-    words.value = [];
-    currentWordIndex.value = 0;
+    words.value.clear();
   }
 
   return {
     words,
+    currentWord,
     addWords,
-    currentWordIndex,
     advanceWord,
     clearWords,
   }

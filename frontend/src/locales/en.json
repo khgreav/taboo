@@ -57,8 +57,8 @@
         "other": "{name} is giving hints this round."
       }
     },
-    "wordList": {
-      "roundTime": "Round time",
+    "roundTime": "Round time",
+    "tabooCard": {
       "currentWord": "Word to guess",
       "tabooWords": "Taboo words"
     }
