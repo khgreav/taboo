@@ -16,12 +16,13 @@ type GameState int
 const RoundDuration = 60
 const BatchSize = 10
 const MaxRounds = 4
+const MaxPlayers = 4
 
 const (
 	InLobby GameState = iota
 	InProgress
 	InRound
-	RoundPaused
+	Paused
 	Ended
 )
 
@@ -118,7 +119,11 @@ func (g *Game) reset(withPlayers bool) {
 			delete(g.players, k)
 		}
 	} else {
-		for _, player := range g.players {
+		for k, player := range g.players {
+			if !player.connected {
+				delete(g.players, k)
+				continue
+			}
 			player.SetReady(false)
 			player.SetTeam(Unassigned)
 		}
@@ -158,13 +163,10 @@ func (g *Game) run() {
 	}
 }
 
-func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *string, name string) (string, error) {
+func (g *Game) AddPlayer(conn *websocket.Conn, name string) (string, error) {
 	g.playerMtx.Lock()
 
-	var player *Player
-	reconnected := false
-
-	if len(g.players) == 4 && g.AllConnected() {
+	if len(g.players) == 4 {
 		SendDirectErrorMessage(
 			conn,
 			*CreateErrorMessage(
@@ -176,109 +178,42 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 		return "", fmt.Errorf("player from %s cannot connect, game is full", conn.RemoteAddr().String())
 	}
 
-	if playerId != nil && sessionToken != nil {
-		var exist bool
-		player, exist = g.players[*playerId]
-		if !exist {
-			SendDirectErrorMessage(
-				conn,
-				*CreateErrorMessage(
-					ConnectMsg,
-					ErrPlayerNotFound,
-				),
-			)
-			g.playerMtx.Unlock()
-			return "", fmt.Errorf("player ID %s does not exist", *playerId)
-		}
-		if player.sessionToken != *sessionToken {
-			g.playerMtx.Unlock()
-			return "", fmt.Errorf("returning player ID %s session token %s mismatch", *playerId, *sessionToken)
-		}
-		reconnected = true
-	} else if playerId != nil && sessionToken == nil {
-		SendDirectErrorMessage(
-			conn,
-			*CreateErrorMessage(
-				ConnectMsg,
-				ErrSessionTokenMissing,
-			),
-		)
-		g.playerMtx.Unlock()
-		return "", fmt.Errorf("returning player ID %s missing session token", *playerId)
-	} else {
-		newId := generateUUID()
-		// new player without ID
-		player = &Player{
-			id:           newId,
-			conn:         conn,
-			sessionToken: generateUUID(),
-			name:         name,
-			isReady:      false,
-			team:         -1,
-			connected:    true,
-		}
-		g.players[newId] = player
+	newId := generateUUID()
+	// new player without ID
+	player := &Player{
+		id:           newId,
+		conn:         conn,
+		sessionToken: generateUUID(),
+		name:         name,
+		isReady:      false,
+		team:         -1,
+		connected:    true,
 	}
+	g.players[newId] = player
 
 	// get copy of players to unlock early to not block other operations while sending messages
 	players := g.GetPlayersCopyUnlocked()
 
-	if !reconnected {
-		// create a connect ack message for the new player
-		connectMsg := ConnectAckMessage{
-			TypeProperty: TypeProperty{
-				Type: ConnectAckMsg,
-			},
-			PlayerIdProperty: PlayerIdProperty{
-				PlayerId: player.id,
-			},
-			SessionToken: player.sessionToken,
-			Name:         name,
-		}
-		// send connect ack to the new player
-		if err := SendUnicastMessage(player, connectMsg); err != nil {
-			slog.Warn(
-				"Failed to send connect ack message.",
-				slog.String("playerId", player.id),
-				slog.String("error", err.Error()),
-			)
-		}
-	} else {
-		player.SetConnection(conn)
-		player.SetConnected(true)
-		words := g.PreparePendingWordBatch()
-
-		// create a reconnect message for returning player
-		reconnectMsg := ReconnectAckMessage{
-			ConnectAckMessage: ConnectAckMessage{
-				TypeProperty: TypeProperty{
-					Type: ReconnectAckMsg,
-				},
-				PlayerIdProperty: PlayerIdProperty{
-					PlayerId: player.id,
-				},
-				SessionToken: player.sessionToken,
-				Name:         name,
-			},
-			Team:              player.team,
-			State:             g.gameState,
-			RemainingDuration: g.currentRound.Duration,
-			CurrentTeam:       g.currentRound.Team,
-			GuesserId:         g.currentRound.GuesserId,
-			HintGiverId:       g.currentRound.HintGiverId,
-			RedScore:          g.teamScores[Red],
-			BlueScore:         g.teamScores[Blue],
-			Words:             words,
-		}
-		// send reconnect ack to returning player
-		if err := SendUnicastMessage(player, reconnectMsg); err != nil {
-			slog.Warn(
-				"Failed to send reconnect ack message.",
-				slog.String("playerId", player.id),
-				slog.String("error", err.Error()),
-			)
-		}
+	// create a connect ack message for the new player
+	connectMsg := ConnectAckMessage{
+		TypeProperty: TypeProperty{
+			Type: ConnectAckMsg,
+		},
+		PlayerIdProperty: PlayerIdProperty{
+			PlayerId: player.id,
+		},
+		SessionToken: player.sessionToken,
+		Name:         name,
 	}
+	// send connect ack to the new player
+	if err := SendUnicastMessage(player, connectMsg); err != nil {
+		slog.Warn(
+			"Failed to send connect ack message.",
+			slog.String("playerId", player.id),
+			slog.String("error", err.Error()),
+		)
+	}
+
 	g.playerMtx.Unlock()
 
 	// create a player list message to send lobby state to player
@@ -297,17 +232,109 @@ func (g *Game) AddPlayer(conn *websocket.Conn, playerId *string, sessionToken *s
 		)
 	}
 
-	if !reconnected {
-		// create a player joined message to notify other players
-		joinedMsg := player.CreatePlayerJoinedMessage()
-		// broadcast player joined message to all other players, excluding the new player
-		BroadcastMessage(players, joinedMsg, &player.id)
-	} else {
-		reconnectedMsg := player.CreatePlayerReconnectedMessage()
-		BroadcastMessage(players, reconnectedMsg, &player.id)
-	}
+	// create a player joined message to notify other players
+	joinedMsg := player.CreatePlayerJoinedMessage()
+	// broadcast player joined message to all other players, excluding the new player
+	BroadcastMessage(players, joinedMsg, &player.id)
 
 	return player.id, nil
+}
+
+func (g *Game) ReconnectPlayer(conn *websocket.Conn, playerId string, sessionToken string) error {
+	g.playerMtx.Lock()
+
+	if len(g.players) == MaxPlayers && g.AllConnected() {
+		// full lobby, everyone connected
+		SendDirectErrorMessage(
+			conn,
+			*CreateErrorMessage(
+				ConnectMsg,
+				ErrGameFull,
+			),
+		)
+		g.playerMtx.Unlock()
+		return fmt.Errorf("player from %s cannot connect, game is full", conn.RemoteAddr().String())
+	}
+
+	player, exist := g.players[playerId]
+	if !exist {
+		// player with ID is not connected
+		SendDirectErrorMessage(
+			conn,
+			*CreateErrorMessage(
+				ConnectMsg,
+				ErrPlayerNotFound,
+			),
+		)
+		g.playerMtx.Unlock()
+		return fmt.Errorf("player ID %s does not exist", playerId)
+	}
+	if player.sessionToken != sessionToken {
+		// player has invalid session token
+		g.playerMtx.Unlock()
+		return fmt.Errorf("returning player ID %s session token %s mismatch", playerId, sessionToken)
+	}
+
+	player.SetConnection(conn)
+	player.SetConnected(true)
+	words := g.PreparePendingWordBatch()
+
+	// create a reconnect message for returning player
+	reconnectMsg := ReconnectAckMessage{
+		ConnectAckMessage: ConnectAckMessage{
+			TypeProperty: TypeProperty{
+				Type: ReconnectAckMsg,
+			},
+			PlayerIdProperty: PlayerIdProperty{
+				PlayerId: player.id,
+			},
+			SessionToken: player.sessionToken,
+			Name:         player.name,
+		},
+		Team:              player.team,
+		State:             g.gameState,
+		RemainingDuration: g.currentRound.Duration,
+		CurrentTeam:       g.currentRound.Team,
+		GuesserId:         g.currentRound.GuesserId,
+		HintGiverId:       g.currentRound.HintGiverId,
+		RedScore:          g.teamScores[Red],
+		BlueScore:         g.teamScores[Blue],
+		Words:             words,
+	}
+	// send reconnect ack to returning player
+	if err := SendUnicastMessage(player, reconnectMsg); err != nil {
+		slog.Warn(
+			"Failed to send reconnect ack message.",
+			slog.String("playerId", player.id),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	players := g.GetPlayersCopyUnlocked()
+	g.playerMtx.Unlock()
+
+	// create a player list message to send lobby state to player
+	listMsg := &PlayerListMessage{
+		TypeProperty: TypeProperty{
+			Type: PlayerListMsg,
+		},
+		Players: g.CreatePlayerList(),
+	}
+	// send player list to the new player
+	if err := SendUnicastMessage(player, listMsg); err != nil {
+		slog.Warn(
+			"Failed to send player list message.",
+			slog.String("player_id", player.id),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	// create a player reconnected message to notify other players
+	reconnectedMsg := player.CreatePlayerReconnectedMessage()
+	// broadcast player reconnected message to all other players, excluding the reconnected player
+	BroadcastMessage(players, reconnectedMsg, &player.id)
+
+	return nil
 }
 
 func (g *Game) RemovePlayer(playerId string) {
@@ -362,7 +389,7 @@ func (g *Game) RemovePlayer(playerId string) {
 
 		if g.gameState == InRound {
 			// player disconnected during an active round, pausse round
-			g.gameState = RoundPaused
+			g.gameState = Paused
 			// cancel end round timer
 			g.CancelEndRoundTimer()
 			// update round duration
@@ -612,7 +639,7 @@ func (g *Game) resumeRound(playerId string) {
 		return
 	}
 
-	if g.gameState != RoundPaused {
+	if g.gameState != Paused {
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
@@ -730,7 +757,7 @@ func (g *Game) resetToLobby(playerId string) {
 		return
 	}
 
-	if g.gameState != Ended {
+	if g.gameState != Ended && g.gameState != Paused {
 		SendErrorMessage(
 			player,
 			*CreateErrorMessage(
@@ -739,7 +766,7 @@ func (g *Game) resetToLobby(playerId string) {
 			),
 		)
 		slog.Error(
-			"Game has not ended yet, cannot reset to lobby.",
+			"Game has not ended yet or round is not paused, cannot reset to lobby.",
 			slog.Int("gameState", int(g.gameState)),
 		)
 		return

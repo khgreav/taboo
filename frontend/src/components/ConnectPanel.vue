@@ -45,6 +45,7 @@ import {
   type MessageBase,
   MessageType,
   type ReconnectAckMessage,
+  type ReconnectMessage,
 } from '@/types/messages';
 import { storeToRefs } from 'pinia';
 import { ref, type Ref } from 'vue';
@@ -87,18 +88,15 @@ clientSocket.$onAction(({ name, after }) => {
 const connect = () => {
   clientSocket.sendMessage<ConnectMessage>({
     type: MessageType.ConnectMsg,
-    playerId: null,
-    sessionToken: null,
     name: name.value
   });
 };
 
 const reconnect = () => {
-  clientSocket.sendMessage<ConnectMessage>({
-    type: MessageType.ConnectMsg,
-    playerId: player.value.id,
-    sessionToken: player.value.sessionToken,
-    name: player.value.name,
+  clientSocket.sendMessage<ReconnectMessage>({
+    type: MessageType.ReconnectMsg,
+    playerId: player.value.id!,
+    sessionToken: player.value.sessionToken!,
   });
 }
 

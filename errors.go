@@ -5,7 +5,7 @@ type ErrorCode int
 const (
 	ErrGameFull = iota
 	ErrPlayerNotFound
-	ErrSessionTokenMissing
+	ErrSessionTokenInvalid
 	ErrGameNotInLobby
 	ErrTeamFull
 	ErrPlayerNotInTeam
@@ -23,8 +23,8 @@ func GetErrMessage(code ErrorCode) string {
 		return "Game is full."
 	case ErrPlayerNotFound:
 		return "Player ID does not exist."
-	case ErrSessionTokenMissing:
-		return "Session token is missing."
+	case ErrSessionTokenInvalid:
+		return "Session token is invalid."
 	case ErrGameNotInLobby:
 		return "Game not in lobby state."
 	case ErrTeamFull:

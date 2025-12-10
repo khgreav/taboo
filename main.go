@@ -52,12 +52,26 @@ func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 					slog.Error("Failed to cast message to ConnectMessage")
 					continue
 				}
-				playerId, err = game.AddPlayer(conn, conMsg.PlayerId, conMsg.SessionToken, conMsg.Name)
+				playerId, err = game.AddPlayer(conn, conMsg.Name)
 				if err != nil {
 					slog.Error("Failed to add player")
 					break
 				}
 				slog.Debug("Player ID stored", "playerId", playerId)
+				continue
+			} else if msg.GetType() == ReconnectMsg {
+				reconMsg, ok := msg.(*ReconnectMessage)
+				if !ok {
+					slog.Error("Failed to cast message to ReconnectMessage")
+					continue
+				}
+				playerId = reconMsg.PlayerId
+				err = game.ReconnectPlayer(conn, playerId, reconMsg.SessionToken)
+				if err != nil {
+					slog.Error("Failed to reconnect player", "playerId", playerId, "err", err)
+					break
+				}
+				slog.Debug("Player ID stored after reconnection", "playerId", playerId)
 				continue
 			} else {
 				playerMsg, ok := msg.(PlayerMessage)

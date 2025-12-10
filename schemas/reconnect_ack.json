@@ -46,7 +46,7 @@
     "state": {
       "title": "Game state",
       "type": "integer",
-      "enum": [1, 2, 3]
+      "enum": [1, 2, 3, 4]
     },
     "remainingDuration": {
       "title": "Remaining round duration",

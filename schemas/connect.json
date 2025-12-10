@@ -2,36 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "connect",
   "type": "object",
-  "required": ["type", "playerId", "sessionToken", "name"],
+  "required": ["type", "name"],
   "additionalProperties": false,
   "properties": {
     "type": {
       "title": "Message type",
       "const": "connect"
-    },
-    "playerId": {
-      "title": "Player ID",
-      "oneOf": [
-        {
-          "type": "string",
-          "format": "uuid"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "sessionToken": {
-      "title": "Session token",
-      "oneOf": [
-        {
-          "type": "string",
-          "format": "uuid"
-        },
-        {
-          "type": "null"
-        }
-      ]
     },
     "name": {
       "title": "Player name",

@@ -7,6 +7,7 @@ export enum MessageType {
   // player connections
   ConnectMsg = 'connect',
   ConnectAckMsg = 'connect_ack',
+  ReconnectMsg = 'reconnect',
   ReconnectAckMsg = 'reconnect_ack',
   PlayerJoinedMsg = 'player_joined',
   PlayerLeftMsg = 'player_left',
@@ -58,8 +59,6 @@ export interface ErrorResponseMessage extends MessageBase {
 
 export interface ConnectMessage extends MessageBase {
   type: MessageType.ConnectMsg;
-  playerId: string | null;
-  sessionToken: string | null;
   name: string;
 }
 
@@ -68,6 +67,12 @@ export interface ConnectAckMessage extends MessageBase {
   playerId: string;
   sessionToken: string;
   name: string;
+}
+
+export interface ReconnectMessage extends MessageBase {
+  type: MessageType.ReconnectMsg;
+  playerId: string;
+  sessionToken: string;
 }
 
 export interface ReconnectAckMessage extends Omit<ConnectAckMessage, 'type'> {

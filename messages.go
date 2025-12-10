@@ -10,6 +10,7 @@ const (
 	// player connections
 	ConnectMsg            MessageType = "connect"
 	ConnectAckMsg         MessageType = "connect_ack"
+	ReconnectMsg          MessageType = "reconnect"
 	ReconnectAckMsg       MessageType = "reconnect_ack"
 	PlayerJoinedMsg       MessageType = "player_joined"
 	PlayerLeftMsg         MessageType = "player_left"
@@ -75,9 +76,7 @@ type ErrorResponseMessage struct {
 
 type ConnectMessage struct {
 	TypeProperty
-	PlayerId     *string `json:"playerId"`
-	SessionToken *string `json:"sessionToken"`
-	Name         string  `json:"name"`
+	Name string `json:"name"`
 }
 
 type ConnectAckMessage struct {
@@ -85,6 +84,12 @@ type ConnectAckMessage struct {
 	PlayerIdProperty
 	SessionToken string `json:"sessionToken"`
 	Name         string `json:"name"`
+}
+
+type ReconnectMessage struct {
+	TypeProperty
+	PlayerId     string `json:"playerId"`
+	SessionToken string `json:"sessionToken"`
 }
 
 type ReconnectAckMessage struct {
@@ -233,6 +238,8 @@ func ConstructMessageContainer(messageType MessageType) (MessageBase, error) {
 	switch messageType {
 	case ConnectMsg:
 		return &ConnectMessage{}, nil
+	case ReconnectMsg:
+		return &ReconnectMessage{}, nil
 	case ChangeTeamMsg:
 		return &ChangeTeamMessage{}, nil
 	case PlayerReadyMsg:
