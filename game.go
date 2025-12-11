@@ -788,12 +788,17 @@ func (g *Game) resetToLobby(playerId string) {
 		return
 	}
 
-	players := g.GetPlayersCopyUnlocked()
 	g.reset(false)
+	players := g.GetPlayersCopyUnlocked()
+	remainingPlayers := make([]string, 0, len(players))
+	for playerId := range players {
+		remainingPlayers = append(remainingPlayers, playerId)
+	}
 	resetMsg := &GameResetMessage{
 		TypeProperty: TypeProperty{
 			Type: GameResetMsg,
 		},
+		Players: remainingPlayers,
 	}
 	err := BroadcastMessage(players, resetMsg, nil)
 	if err != nil {

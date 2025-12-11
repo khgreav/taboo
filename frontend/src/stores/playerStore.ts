@@ -11,7 +11,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
     team: Team.Unassigned,
     isReady: false,
   })
-  const playerList: Ref<OtherPlayer[]> = ref([]);
+  const playerMap: Ref<Map<string, OtherPlayer>> = ref(new Map());
 
   function setConnected(status: boolean): void {
     connected.value = status;
@@ -47,7 +47,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
     if (player.value.id === id) {
       return player.value.name;
     }
-    const item = playerList.value.find(player => player.id === id);
+    const item = playerMap.value.get(id);
     if (!item) {
       return null;
     }
@@ -62,22 +62,23 @@ export const usePlayerStore = defineStore('playerStore', () => {
     player.value.isReady = isReady;
   }
 
-  function setPlayerList(players: OtherPlayer[]): void {
-    playerList.value = players.filter(p => p.id !== player.value.id);
-    sortPlayerList();
+  function setPlayers(players: OtherPlayer[]): void {
+    const map = new Map<string, OtherPlayer>();
+    players.forEach(item => {
+      if (item.id === player.value.id) {
+        return;
+      }
+      map.set(item.id, item);
+    });
+    playerMap.value = map;
   }
 
   function addPlayer(player: OtherPlayer): void {
-    playerList.value.push(player);
-    sortPlayerList();
+    playerMap.value.set(player.id, player);
   }
 
   function removePlayer(playerId: string): void {
-    const idx = playerList.value.findIndex(player => player.id === playerId);
-    if (idx === -1) {
-      return;
-    }
-    playerList.value.splice(idx, 1);
+    playerMap.value.delete(playerId);
   }
 
   function setPlayerTeam(playerId: string, team: Team): void {
@@ -85,7 +86,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
       player.value.team = team;
       player.value.isReady = false;
     }
-    const item = playerList.value.find(player => player.id === playerId);
+    const item = playerMap.value.get(playerId);
     if (!item) {
       return;
     }
@@ -97,7 +98,7 @@ export const usePlayerStore = defineStore('playerStore', () => {
     if (playerId === player.value.id) {
       player.value.isReady = isReady;
     }
-    const item = playerList.value.find(player => player.id === playerId);
+    const item = playerMap.value.get(playerId);
     if (!item) {
       return;
     }
@@ -105,32 +106,25 @@ export const usePlayerStore = defineStore('playerStore', () => {
   }
 
   function setPlayerConnected(playerId: string, connected: boolean): void {
-    const item = playerList.value.find(player => player.id === playerId);
+    const item = playerMap.value.get(playerId);
     if (!item) {
       return;
     }
     item.connected = connected;
   }
 
-  function resetPlayerTeams(): void {
+  function resetPlayerTeams(remainingPlayers: Set<string>): void {
     player.value.team = Team.Unassigned;
     player.value.isReady = false;
-    playerList.value.forEach((p: OtherPlayer) => {
-      p.team = Team.Unassigned;
-      p.isReady = false;
-    });
-  }
-
-  function sortPlayerList(): void {
-    playerList.value.sort((a: OtherPlayer, b: OtherPlayer) => {
-      if (a.id === player.value.id) {
-        return -1;
+    for (const id of playerMap.value.keys()) {
+      if (remainingPlayers.has(id)) {
+        const item = playerMap.value.get(id)!;
+        item.team = Team.Unassigned;
+        item.isReady = false;
+      } else {
+        playerMap.value.delete(id);
       }
-      if (b.id === player.value.id) {
-        return 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
+    }
   }
 
   return {
@@ -147,8 +141,8 @@ export const usePlayerStore = defineStore('playerStore', () => {
     connected,
     setConnected,
     setPlayerConnected,
-    playerList,
-    setPlayerList,
+    playerMap,
+    setPlayers,
     addPlayer,
     removePlayer,
     setPlayerReady,

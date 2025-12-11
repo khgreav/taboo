@@ -66,7 +66,7 @@ import { teamToString } from '@/utils/team';
 
 const i18n = useI18n();
 const playerStore = usePlayerStore();
-const { player, playerList } = storeToRefs(playerStore);
+const { player, playerMap } = storeToRefs(playerStore);
 const gameStore = useGameStore();
 const { gameState } = storeToRefs(gameStore);
 const logStore = useLogStore();
@@ -111,7 +111,7 @@ const unassignedPlayers = computed(() => {
       ...player.value,
     } as OtherPlayer);
   }
-  for (const player of playerList.value) {
+  for (const player of playerMap.value.values()) {
     if (player.team === Team.Unassigned) {
       players.push(player);
     }
@@ -127,7 +127,7 @@ const redPlayers = computed(() => {
       ...player.value,
     } as OtherPlayer);
   }
-  for (const player of playerList.value) {
+  for (const player of playerMap.value.values()) {
     if (player.team === Team.Red) {
       players.push(player);
     }
@@ -143,7 +143,7 @@ const bluePlayers = computed(() => {
       ...player.value,
     } as OtherPlayer);
   }
-  for (const player of playerList.value) {
+  for (const player of playerMap.value.values()) {
     if (player.team === Team.Blue) {
       players.push(player);
     }
@@ -189,7 +189,7 @@ const changeReadyState = () => {
 };
 
 const handlePlayerList = (message: PlayerListMessage) => {
-  playerStore.setPlayerList(message.players);
+  playerStore.setPlayers(message.players);
 };
 
 const handlePlayerJoined = (message: PlayerJoinedMessage) => {

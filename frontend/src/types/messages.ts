@@ -198,7 +198,7 @@ export interface RoundResumedMessage extends MessageBase {
   playerId: string;
 }
 
-export interface GameEndedMsg extends MessageBase {
+export interface GameEndedMessage extends MessageBase {
   type: MessageType.GameEndedMsg;
   redScore: number;
   blueScore: number;
@@ -211,4 +211,5 @@ export interface ResetGameMessage extends MessageBase {
 
 export interface GameResetMessage extends MessageBase {
   type: MessageType.GameResetMsg;
+  players: string[];
 }

@@ -72,7 +72,8 @@ import { useWordStore } from '@/stores/wordStore';
 import {
   GameState,
   MessageType,
-  type GameEndedMsg,
+  type GameEndedMessage,
+  type GameResetMessage,
   type GameStateChangedMessage,
   type MessageBase,
   type ResumeRoundMessage,
@@ -145,10 +146,10 @@ clientSocket.$onAction(({ name, after }) => {
           handleRoundResumed(message as RoundResumedMessage);
           break;
         case MessageType.GameEndedMsg:
-          handleGameEnded(message as GameEndedMsg);
+          handleGameEnded(message as GameEndedMessage);
           break;
         case MessageType.GameResetMsg:
-          handleGameReset();
+          handleGameReset(message as GameResetMessage);
           break;
       }
     });
@@ -299,7 +300,7 @@ const handleRoundResumed = (message: RoundResumedMessage) => {
   );
 }
 
-const handleGameEnded = (message: GameEndedMsg) => {
+const handleGameEnded = (message: GameEndedMessage) => {
   gameStore.setGameState(GameState.Ended);
   gameStore.setRedScore(message.redScore);
   gameStore.setBlueScore(message.blueScore);
@@ -316,10 +317,10 @@ const resetGame = () => {
   });
 };
 
-const handleGameReset = () => {
+const handleGameReset = (message: GameResetMessage) => {
   gameStore.resetGame();
   wordStore.clearWords();
-  playerStore.resetPlayerTeams();
+  playerStore.resetPlayerTeams(new Set(message.players));
   logStore.addLogRecord(
     i18n.t('messages.gameState.inLobby'),
   );

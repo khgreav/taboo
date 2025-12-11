@@ -8,6 +8,14 @@
     "type": {
       "title": "Message type",
       "const": "game_reset"
+    },
+    "players": {
+      "title": "Remaining player IDs",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
     }
   }
 }
