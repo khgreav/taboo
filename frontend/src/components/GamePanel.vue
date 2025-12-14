@@ -1,5 +1,5 @@
 <template>
-  <div class="centered centered-column">
+  <div>
     <ConnectPanel
       v-if="!connected"
       @update-duration='adjustRemaining(duration)'

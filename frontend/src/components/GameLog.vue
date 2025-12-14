@@ -1,11 +1,15 @@
 <template>
-  <label>{{ $t('sections.log') }}</label>
-  <div id="logContainer" class="log">
-    <div
-      v-for="(log, index) in logs"
-      :key="index"
-    >
-      <span>{{ `${new Date(log.timestamp).toLocaleTimeString()}: ${log.message}` }}</span>
+  <div class="default-border">
+    <div class="side-panel-title">
+      {{ $t('sections.log') }}
+    </div>
+    <div id="logContainer" class="log-entries">
+      <div
+        v-for="(log, index) in logs"
+        :key="index"
+      >
+        <span>{{ `${new Date(log.timestamp).toLocaleTimeString()}: ${log.message}` }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -20,7 +24,6 @@ const { logs } = storeToRefs(logStore);
 
 watch(() => logs.value.length, async () => {
   const logDiv = document.getElementById('logContainer');
-  console.log(logDiv);
   if (!logDiv) {
     return;
   }

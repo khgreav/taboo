@@ -1,43 +1,52 @@
 <template>
-  <label>{{ $t('components.playerList.title') }}</label>
-  <div>
-    <PlayerList
-      :players="redPlayers"
-      :team="Team.Red"
-    />
-    <PlayerList
-      :players="bluePlayers"
-      :team="Team.Blue"
-    />
-    <PlayerList
-      v-if="unassignedPlayers.length > 0"
-      :players="unassignedPlayers"
-      :team="Team.Unassigned"
-    />
-    <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Unassigned"
-      @click="changeReadyState()"
+  <div class="default-border">
+    <div class="side-panel-title">
+      {{ $t('components.playerList.title') }}
+    </div>
+    <div>
+      <PlayerList
+        :players="redPlayers"
+        :team="Team.Red"
+      />
+      <PlayerList
+        :players="bluePlayers"
+        :team="Team.Blue"
+      />
+      <PlayerList
+        v-if="unassignedPlayers.length > 0"
+        :players="unassignedPlayers"
+        :team="Team.Unassigned"
+      />
+    </div>
+    <div
+      v-if="gameState === GameState.InLobby"
+      class="team-controls"
     >
-      {{ readyButtonText }}
-    </button>
-    <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Red && redPlayers.length < 2"
-      @click="changeTeam(Team.Red)"
-    >
-      {{ $t('components.playerList.actions.red') }}
-    </button>
-    <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Blue && bluePlayers.length < 2"
-      @click="changeTeam(Team.Blue)"
-    >
-      {{ $t('components.playerList.actions.blue') }}
-    </button>
-    <button
-      v-if="gameState === GameState.InLobby && player.team !== Team.Unassigned"
-      @click="changeTeam(Team.Unassigned)"
-    >
-      {{ $t('components.playerList.actions.unassigned') }}
-    </button>
+      <button
+        v-if="player.team !== Team.Unassigned"
+        @click="changeReadyState()"
+      >
+        {{ readyButtonText }}
+      </button>
+      <button
+        v-if="player.team !== Team.Red && redPlayers.length < 2"
+        @click="changeTeam(Team.Red)"
+      >
+        {{ $t('components.playerList.actions.red') }}
+      </button>
+      <button
+        v-if="player.team !== Team.Blue && bluePlayers.length < 2"
+        @click="changeTeam(Team.Blue)"
+      >
+        {{ $t('components.playerList.actions.blue') }}
+      </button>
+      <button
+        v-if="player.team !== Team.Unassigned"
+        @click="changeTeam(Team.Unassigned)"
+      >
+        {{ $t('components.playerList.actions.unassigned') }}
+      </button>
+    </div>
   </div>
 </template>
 

@@ -1,25 +1,36 @@
 <template>
-  {{ teamTitle }} <span v-if="team !== Team.Unassigned">{{ teamScore }}</span>
-  <ul class="player-list">
-    <li
-      v-for="item in players"
-      :key="item.id"
-      :class="{
-        'current-player': item.id === player.id,
-        'disconnected-player': !item.connected,
-      }"
-    >
-      {{ item.name }}
-      <span
-        v-if="gameState === GameState.InLobby"
-        :style="{
-          color: item.isReady ? 'green' : 'red',
-        }"
-      >
-        {{ item.isReady ? $t('components.playerList.states.ready') : $t('components.playerList.states.notReady') }}
-      </span>
-    </li>
-  </ul>
+  <div
+    :class="{
+      'team': true,
+      'last-team': team === Team.Blue && gameState !== GameState.InLobby,
+    }"
+  >
+    <div class="team-title">
+      {{ teamTitle }} <span v-if="team !== Team.Unassigned">{{ teamScore }}</span>
+    </div>
+    <div class="team-players">
+      <ul>
+        <li
+          v-for="item in players"
+          :key="item.id"
+          :class="{
+            'current-player': item.id === player.id,
+            'disconnected-player': !item.connected,
+          }"
+        >
+          {{ item.name }}
+          <span
+            v-if="gameState === GameState.InLobby && item.team !== Team.Unassigned"
+            :style="{
+              color: item.isReady ? 'green' : 'red',
+            }"
+          >
+            {{ item.isReady ? $t('components.playerList.states.ready') : $t('components.playerList.states.notReady') }}
+          </span>
+        </li>
+      </ul>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">

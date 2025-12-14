@@ -1,5 +1,21 @@
+// app-wide styles
+
 html, body {
-  height: 98vh;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+form {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+input:invalid {
+  border-color: red;
+  border-style: solid;
+  border-radius: 5px;
 }
 
 label {
@@ -11,31 +27,33 @@ label {
 ul {
   list-style-type: none;
   padding: 0;
+  margin: 0;
 }
 
-input:valid {
-  border: 2px solid green;
-}
+// header styles
 
-input:invalid {
-  border: 2px solid red;
-}
-
-.centered {
+.header {
   display: flex;
-  justify-content: center;
-  height: 100%;
-}
-
-.centered-column {
-  text-align: center;
-  justify-content: flex-start;
-  flex-direction: column;
+  height: 50px;
   align-items: center;
+  justify-content: center;
+  margin: 0.5rem;
 }
 
-.text-center {
-  text-align: center;
+.header-border {
+  border-bottom: 1px solid rgb(143, 137, 137);
+}
+
+.header-text {
+  font-size: xx-large;
+  font-weight: bolder;
+}
+
+.default-border {
+  border-style: solid;
+  border-color: rgb(143, 137, 137);
+  border-width: 1px;
+  border-radius: 10px;
 }
 
 .layout {
@@ -45,23 +63,68 @@ input:invalid {
 
 .left-panel {
   flex: 1;
+  margin-left: 0.5rem;
 }
 
 .center-panel {
   flex: 3;
+  text-align: center;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .right-panel {
   flex: 1;
+  margin-right: 0.5rem;
 }
 
-.log {
+.side-panel-title {
+  font-weight: bold;
+  text-align: center;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid rgb(143, 137, 137);
+}
+
+.log-entries {
   font-size: x-small;
   height: 80vh;
   overflow-y: auto;
   overflow-x: auto;
   font-family: monospace;
-  border: 1px solid black;
+  padding: 0.25rem;
+}
+
+.team {
+  padding: 0.25rem;
+  border-bottom: 1px solid rgb(143, 137, 137);
+}
+
+.team-title {
+  display: flex;
+  justify-content: space-between;
+  padding: inherit;
+}
+
+.team-players {
+  display: flex;
+  padding: inherit;
+  justify-content: space-between;
+  margin: 0;
+}
+
+.team-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.last-team {
+  border-bottom: none;
+}
+
+.team-controls button {
+  margin: 0.25rem;
 }
 
 .current-player {

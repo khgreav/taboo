@@ -1,32 +1,29 @@
 <template>
-  <div class="centered-div">
+  <div class="default-border">
     <form
       v-if="player.id !== null && player.sessionToken !== null"
       @submit.prevent='reconnect()'
     >
-    <fieldset >
       <span>{{ $t('components.connect.reconnectMessage') }}</span><br><br>
       <button type='submit'>
         {{ $t('components.connect.actions.reconnect')}}
       </button>
-    </fieldset>
     </form>
     <form
       v-else
       @submit.prevent='connect()'
     >
-      <fieldset>
-        <label for="nameInput">{{ $t('components.connect.name') }}</label>
-        <input
-          ref="nameInput"
-          v-model="name"
-          type="text"
-          required
-        /><br><br>
-        <button type='submit'>
-          {{ $t('components.connect.actions.connect')}}
-        </button>
-      </fieldset>
+      <label for="playerName">{{ $t('components.connect.name') }}</label>
+      <input
+        id="playerName"
+        ref="nameInput"
+        v-model="name"
+        type="text"
+        required
+      /><br><br>
+      <button type='submit'>
+        {{ $t('components.connect.actions.connect')}}
+      </button>
     </form>
   </div>
 </template>
