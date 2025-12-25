@@ -1,9 +1,5 @@
 <template>
-  <div class="header header-border">
-    <div class="header-text">
-      {{ $t('title') }}
-    </div>
-  </div>
+  <AppHeader />
   <div class="layout">
     <div class="left-panel">
       <GameLog v-if="connected" />
@@ -15,11 +11,14 @@
       <PlayerPanel v-if="connected" />
     </div>
   </div>
+  <DisconnectOverlay />
 </template>
 
 <script setup lang="ts">
+  import AppHeader from '@/components/AppHeader.vue';
 import GameLog from '@/components/GameLog.vue';
 import GamePanel from '@/components/GamePanel.vue';
+import DisconnectOverlay from '@/components/DisconnectOverlay.vue';
 import PlayerPanel from '@/components/PlayerPanel.vue';
 import { usePlayerStore } from '@/stores/playerStore';
 

@@ -1,23 +1,32 @@
 <template>
   <div>
-    <span v-if="currentTeam === Team.Red">
+    <div
+      v-if="currentTeam === Team.Red"
+      class="turn-base team-turn"
+    >
       {{ $t('components.roleBanner.team.red') }}<br>
-    </span>
-    <span v-else-if="currentTeam === Team.Blue">
+    </div>
+    <div
+      v-else-if="currentTeam === Team.Blue"
+      class="turn-base team-turn"
+    >
       {{ $t('components.roleBanner.team.blue') }}<br>
-    </span>
-    <span v-if="player.id === hintGiverId">
+    </div>
+    <div v-if="player.id === hintGiverId" class="turn-base player-turn">
       {{ $t('components.roleBanner.hintGiver.player') }}<br>
-    </span>
-    <span v-else>
+    </div>
+    <div
+      v-else
+      class="turn-base player-turn"
+    >
       {{ $t('components.roleBanner.hintGiver.other', { name: playerStore.getPlayerName(hintGiverId!) }) }}<br>
-    </span>
-    <span v-if="player.id === guesserId">
+    </div>
+    <div v-if="player.id === guesserId" class="turn-base player-turn">
       {{ $t('components.roleBanner.guesser.player') }}<br>
-    </span>
-    <span v-else>
+    </div>
+    <div v-else class="turn-base player-turn">
       {{ $t('components.roleBanner.guesser.other', { name: playerStore.getPlayerName(guesserId!) }) }}<br>
-    </span>
+    </div>
   </div>
 </template>
 

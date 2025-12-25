@@ -4,7 +4,7 @@
       v-if="player.id !== null && player.sessionToken !== null"
       @submit.prevent='reconnect()'
     >
-      <span>{{ $t('components.connect.reconnectMessage') }}</span><br><br>
+      <p>{{ $t('components.connect.reconnectMessage') }}</p>
       <button type='submit'>
         {{ $t('components.connect.actions.reconnect')}}
       </button>

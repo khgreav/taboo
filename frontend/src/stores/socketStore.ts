@@ -38,13 +38,13 @@ export const useSocketStore = defineStore('socketStore', {
       this.connected = false;
       setTimeout(() => {
         this.init(this.url!);
-      }, 5000);
+      }, 2000);
     },
     onError(): void {
       this.connected = false;
       setTimeout(() => {
         this.init(this.url!);
-      }, 5000);
+      }, 2000);
     },
     onMessage(e: MessageEvent<string>): MessageBase | null {
       try {

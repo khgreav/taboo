@@ -28,6 +28,12 @@
       "loser": "Your team lost with a score of {loser}-{winner}!",
       "tied": "The game ended in a tie with a score of {score}-{score}."
     },
+    "lobby": {
+      "prompt": "Waiting for players to join teams and ready up."
+    },
+    "overlay": {
+      "reconnecting": "Connection to game server lost, attempting to reconnect."
+    },
     "playerList": {
       "actions": {
         "red": "Join Red team",
@@ -63,7 +69,6 @@
     },
     "roundTime": "Round time",
     "tabooCard": {
-      "currentWord": "Word to guess",
       "tabooWords": "Taboo words"
     }
   },

@@ -1,9 +1,14 @@
 <template>
-  <div>
+  <div class="default-border">
     <ConnectPanel
       v-if="!connected"
       @update-duration='adjustRemaining(duration)'
     />
+    <div>
+      <h3 v-if="gameState === GameState.InLobby && connected">
+        {{ $t('components.lobby.prompt') }}
+      </h3>
+    </div>
     <RoleBanner v-if="gameState !== GameState.InLobby && gameState !== GameState.Ended" />
     <GameStart v-if="gameState === GameState.InProgress" />
     <div v-if="[GameState.InRound, GameState.RoundPaused].includes(gameState)">
@@ -13,7 +18,10 @@
         </h3>
       </div>
       <TabooCard v-if="player.id !== guesserId" />
-      <div v-if="player.id === hintGiverId">
+      <div
+        v-if="player.id === hintGiverId"
+        class="button-controls"
+      >
         <button
           :disabled="words.length === 1 || gameState === GameState.RoundPaused"
           @click="guessWord()"
@@ -45,12 +53,14 @@
       <h3 v-else>
         {{ $t('components.gameOver.loser', { loser: myTeamScore, winner: opposingTeamScore }) }}
       </h3>
-      <button
-        v-if="player.id === hintGiverId"
-        @click='resetGame()'
-      >
-        {{ $t('components.controls.reset') }}
-      </button>
+      <div class="button-controls">
+        <button
+          v-if="player.id === hintGiverId"
+          @click='resetGame()'
+        >
+          {{ $t('components.controls.reset') }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -2,6 +2,7 @@
   <p>
     <span v-if="player.id === hintGiverId">
       <button
+        class="button-style"
         @click="startRound()"
       >
         {{ $t('actions.startRound') }}

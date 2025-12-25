@@ -1,17 +1,22 @@
 <template>
-  <div v-if="currentWord !== null">
-    <h2>{{ $t('components.tabooCard.currentWord') }}</h2>
+  <div
+    v-if="currentWord !== null"
+    class="taboo-card"
+  >
     <hr />
-    <b>{{ currentWord.word }}</b>
+    <div class="guessed-word">{{ currentWord.word }}</div>
     <hr />
-    <h3>{{ $t('components.tabooCard.tabooWords') }}</h3>
+    <div class="taboo-words">{{ $t('components.tabooCard.tabooWords') }}</div>
     <ul>
-      <li v-for="tabooWord in currentWord.taboo" :key="tabooWord">
+      <li
+        v-for="tabooWord in currentWord.taboo"
+        :key="tabooWord"
+        class="taboo-word"
+      >
         {{ tabooWord }}
       </li>
     </ul>
   </div>
-
 </template>
 
 <script setup lang="ts">
