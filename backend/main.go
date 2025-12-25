@@ -9,8 +9,6 @@ import (
 	"os"
 )
 
-var addr = "localhost:8080"
-
 func playerConnHandler(game *Game, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -132,6 +130,10 @@ func main() {
 	if err := initStorage(); err != nil {
 		slog.Error("Failed to initialize game systems: %w", "err", err)
 		os.Exit(1)
+	}
+	addr := os.Getenv("ADDR")
+	if addr == "" {
+		addr = "localhost:8080"
 	}
 	game := CreateGame()
 	go game.run() // TODO: MULTIPLE GAME ROOMS
